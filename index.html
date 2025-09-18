@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KX Earn Bot</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="//libtl.com/sdk.js" data-zone="9894972" data-sdk="show_9894972"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            overflow: auto;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background: #0f172a;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 153, 0.5);
+            width: 90%;
+            max-width: 400px;
+            margin: 20px;
+        }
+        h2 {
+            color: #00ff99;
+            text-shadow: 0 0 10px #00ff99;
+        }
+        .info {
+            margin: 10px 0;
+            font-size: 16px;
+            color: #e0e0e0;
+        }
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(45deg, #00ff99, #00ccff);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:hover:not(.disabled) {
+            transform: scale(1.05);
+            background: linear-gradient(45deg, #00cc7a, #0099cc);
+        }
+        button.disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        #referralLink, #withdrawInfo {
+            word-break: break-all;
+            font-size: 14px;
+            color: #b0b0ff;
+        }
+        .leaderboard {
+            margin-top: 20px;
+            padding: 10px;
+            background: #16213e;
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .leaderboard h3 {
+            color: #00ff99;
+            margin: 10px 0;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+            border-bottom: 1px solid #00ff99;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: #e0e0e0;
+        }
+        .modal-content a {
+            color: #00ff99;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="joinChannelModal" class="modal">
+        <div class="modal-content">
+            <h3>Welcome to KX Earn Bot!</h3>
+            <p>Please join our official channel to start earning:</p>
+            <a href="https://t.me/earncryptofree24" target="_blank">Join @earncryptofree24</a>
+            <button onclick="closeModal()">I have joined</button>
+        </div>
+    </div>
+    <div class="container">
+        <h2>KX Earn Bot</h2>
+        <div class="info" id="userInfo">Loading...</div>
+        <div class="info">Coins: <span id="coins">0</span> 🪙</div>
+        <div class="info">Ads Watched Today: <span id="adsCount">0</span>/100</div>
+        <div class="info">Referrals: <span id="referrals">0</span></div>
+        <div class="info" id="referrerInfo">Checking referrer...</div>
+        <button id="watchAdBtn" onclick="watchAd()">Watch Ad (Earn 20 Coins)</button>
+        <div class="info" id="referralLink">Your referral link will appear here</div>
+        <button onclick="copyReferralLink()">Copy Referral Link</button>
+        <button id="withdrawBtn" onclick="requestWithdrawal()">Request Withdrawal</button>
+        <div class="info" id="withdrawInfo">
+            Minimum 50,000 coins & 20 referrals required.<br>
+            <a href="https://www.binance.com/referral/earn-together/refer-in-hotsummer/claim?hl=en&ref=GRO_20338_0CPVP&utm_source=default" target="_blank">
+                Don't have a Binance account? Sign up here.
+            </a>
+        </div>
+        <div class="leaderboard">
+            <h3>Top 100 Referrers</h3>
+            <div id="leaderboardList">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase सेटअप
+        const supabaseUrl = 'https://lkrkyalivrrmkoyfrhit.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrcmt5YWxpdnJybWtveWZyaGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxNDY1MDUsImV4cCI6MjA3MzcyMjUwNX0.g_lW4S9-C8uGxC5JrXfK_NWQEPnwwmMhT7vLdfS0K4Y';
+        const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Telegram Web App सेटअप
+        window.Telegram.WebApp.ready();
+        const webApp = window.Telegram.WebApp;
+        const user = webApp.initDataUnsafe.user || {};
+        const startParam = webApp.initDataUnsafe.start_param;
+
+        // UI एलिमेंट्स
+        const userInfo = document.getElementById('userInfo');
+        const coinsDisplay = document.getElementById('coins');
+        const adsCountDisplay = document.getElementById('adsCount');
+        const referralsDisplay = document.getElementById('referrals');
+        const referrerInfo = document.getElementById('referrerInfo');
+        const watchAdBtn = document.getElementById('watchAdBtn');
+        const withdrawBtn = document.getElementById('withdrawBtn');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const joinChannelModal = document.getElementById('joinChannelModal');
+
+        // चैनल जॉइन मॉडल
+        function showModal() {
+            joinChannelModal.style.display = 'flex';
+        }
+        function closeModal() {
+            joinChannelModal.style.display = 'none';
+            localStorage.setItem(`joined_${user.id}`, 'true');
+        }
+        if (!localStorage.getItem(`joined_${user.id}`)) {
+            showModal();
+        }
+
+        // यूजर डेटा लोड करें
+        async function loadUserData() {
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (error && error.code !== 'PGRST116') {
+                console.error('Error loading user:', error);
+                return;
+            }
+
+            if (!data) {
+                await supabase.from('users').insert({
+                    id: user.id,
+                    username: user.first_name || 'User',
+                    coins: 0,
+                    ads_count: 0,
+                    last_reset: new Date().toISOString(),
+                    referrals: 0,
+                    last_ad_time: null
+                });
+            }
+            checkReset();
+            updateDashboard();
+        }
+  // 12 घंटे बाद ads काउंट रीसेट करें
+        async function checkReset() {
+            const { data: userData } = await supabase
+                .from('users')
+                .select('last_reset, ads_count')
+                .eq('id', user.id)
+                .single();
+
+            const now = new Date();
+            const lastReset = new Date(userData.last_reset);
+            const hoursDiff = (now - lastReset) / (1000 * 60 * 60);
+            if (hoursDiff >= 12) {
+                await supabase
+                    .from('users')
+                    .update({ ads_count: 0, last_reset: now.toISOString() })
+                    .eq('id', user.id);
+            }
+        }
+
+        // डैशबोर्ड अपडेट करें
+        async function updateDashboard() {
+            const { data: userData } = await supabase
+                .from('users')
+                .select('coins, ads_count, referrals')
+                .eq('id', user.id)
+                .single();
+
+            coinsDisplay.textContent = userData.coins;
+            adsCountDisplay.textContent = `${userData.ads_count}/100`;
+            referralsDisplay.textContent = userData.referrals;
+            watchAdBtn.disabled = userData.ads_count >= 100 || (userData.ads_count >= 20 && userData.referrals < 5);
+            watchAdBtn.classList.toggle('disabled', userData.ads_count >= 100 || (userData.ads_count >= 20 && userData.referrals < 5));
+            withdrawBtn.disabled = userData.referrals < 20 || userData.coins < 50000;
+            withdrawBtn.classList.toggle('disabled', userData.referrals < 20 || userData.coins < 50000);
+            updateLeaderboard();
+        }
+
+        // टॉप 100 रेफरर्स दिखाएं
+        async function updateLeaderboard() {
+            const { data } = await supabase
+                .from('users')
+                .select('username, referrals')
+                .order('referrals', { ascending: false })
+                .limit(100);
+
+            leaderboardList.innerHTML = data.map((user, index) => `
+                <div class="leaderboard-item">
+                    <span>#${index + 1} ${user.username}</span>
+                    <span>${user.referrals} referrals</span>
+                </div>
+            `).join('');
+        }
+
+        // यूजर जानकारी दिखाएं
+        userInfo.textContent = user.id ? `Hello, ${user.first_name || 'User'} (ID: ${user.id})` : 'Unable to fetch user info';
+
+        // रेफरर हैंडल करें
+        async function handleReferrer() {
+            if (startParam && startParam.startsWith('ref')) {
+                const referrerId = startParam.replace('ref', '');
+                if (referrerId !== user.id.toString()) {
+                    referrerInfo.textContent = `Referred by: ${startParam}`;
+                    await supabase.from('referrals').insert({
+                        referrer_id: referrerId,
+                        referred_id: user.id
+                    });
+                    await supabase
+                        .from('users')
+                        .update({
+                            coins: supabase.raw('coins + 200'),
+                            referrals: supabase.raw('referrals + 1')
+                        })
+                        .eq('id', referrerId);
+                }
+            } else {
+                referrerInfo.textContent = 'No referrer';
+            }
+        }
+
+        // रेफरल लिंक जनरेट करें
+        const botUsername = '@KXearn1_bot';
+        const referralLink = `https://t.me/${botUsername}?start=ref${user.id || 'unknown'}`;
+        document.getElementById('referralLink').textContent = referralLink;
+
+        // रेफरल लिंक कॉपी करें
+        function copyReferralLink() {
+            navigator.clipboard.writeText(referralLink).then(() => {
+                webApp.showAlert('Referral link copied!');
+            }).catch(err => {
+                webApp.showAlert('Failed to copy link: ' + err);
+            });
+        }
+
+        // Ad देखने की फंक्शनैलिटी
+        async function watchAd() {
+            const { data: userData } = await supabase
+                .from('users')
+                .select('ads_count, referrals, last_ad_time')
+                .eq('id', user.id)
+                .single();
+
+            if (userData.ads_count >= 100) {
+                webApp.showAlert('Daily ad limit reached!');
+                return;
+            }
+            if (userData.ads_count >= 20 && userData.referrals < 5) {
+                webApp.showAlert('You need at least 5 referrals to watch more ads!');
+                return;
+            }
+
+            // 10 सेकंड का अंतर चेक करें
+            const now = new Date();
+            const lastAdTime = userData.last_ad_time ? new Date(userData.last_ad_time) : null;
+            if (lastAdTime && (now - lastAdTime) / 1000 < 25) {
+                webApp.showAlert('Please wait 10 seconds after the ad ends!');
+                return;
+            }
+
+            // Libtl Rewarded Interstitial
+            show_9894972().then(() => {
+                supabase
+                    .from('users')
+                    .update({
+                        ads_count: supabase.raw('ads_count + 1'),
+                        coins: supabase.raw('coins + 20'),
+                        last_ad_time: now.toISOString()
+                    })
+                    .eq('id', user.id)
+                    .then(() => {
+                        webApp.showAlert('You earned 20 coins!');
+                        updateDashboard();
+                    });
+            }).catch(err => {
+                webApp.showAlert('Error showing ad: ' + err);
+            });
+        }
+
+        // विड्रॉल रिक्वेस्ट
+        async function requestWithdrawal() {
+            const { data: userData } = await supabase
+                .from('users')
+                .select('referrals, coins')
+                .eq('id', user.id)
+                .single();
+
+            if (userData.referrals < 20) {
+                webApp.showAlert('You need at least 20 referrals to withdraw!');
+                return;
+            }
+            if (userData.coins < 50000) {
+                webApp.showAlert('You need at least 50,000 coins to withdraw!');
+                return;
+            }
+
+            const binanceId = prompt('Enter your Binance ID:');
+            const usdtAddress = prompt('Enter your USDT Wallet Address:');
+            if (binanceId && usdtAddress) {
+                await supabase.from('withdrawals').insert({
+                    user_id: user.id,
+                    binance_id: binanceId,
+                    usdt_address: usdtAddress,
+                    coins: userData.coins
+                });
+                await supabase
+                    .from('users')
+                    .update({ coins: 0 })
+                    .eq('id', user.id);
+                webApp.showAlert('Withdrawal request sent! Please wait for admin approval.');
+                updateDashboard();
+            } else {
+                webApp.showAlert('Please provide valid Binance ID and USDT Address.');
+            }
+        }
+
+        // स्टार्टअप
+        async function init() {
+            await loadUserData();
+            await handleReferrer();
+            updateDashboard();
+        }
+        init();
+
+        // Telegram थीम के साथ UI
+        webApp.expand();
+        document.body.style.backgroundColor = webApp.themeParams.bg_color || '#1a1a2e';
+        document.querySelectorAll('button').forEach(btn => {
+            btn.style.background = webApp.themeParams.button_color || 'linear-gradient(45deg, #00ff99, #00ccff)';
+        });
+    </script>
+</body>
+</html>
