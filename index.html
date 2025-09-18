@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KX Earn Bot</title>
+    <title>KGX Earn Bot</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src='//libtl.com/sdk.js' data-zone='9892483' data-sdk='show_9892483'></script>
+    <script src='//libtl.com/sdk.js' data-zone='9896457' data-sdk='show_9896457'></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body {
@@ -149,7 +149,7 @@
             margin: 15px auto;
             display: none;
         }
-         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .footer { text-align: center; margin-top: 15px; color: #666; font-size: 12px; }
         .withdraw-form { margin-top: 15px; }
         .form-group { margin-bottom: 10px; }
@@ -181,7 +181,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>KX Earn Bot</h1>
+            <h1>KGX Earn Bot</h1>
             <p>Watch Ads & Earn Rewards</p>
             <div class="user-info">
                 <div>
@@ -219,7 +219,7 @@
                 <div class="referral-code" id="ref-link">Loading...</div>
                 <button class="btn" id="copyReferral">Copy Referral Link</button>
                 <p id="ref-status"></p>
-                <p>Share this link with friends to earn 100 coins after 1 hour! Use only this link for rewards.</p>
+                <p>Only copy this otherwise you don't get coins. Share this link with friends to earn 100 coins after 24 hours if 2 referrals are completed!</p>
             </div>
             <div class="info-text">
                 <p>🎯 Daily Limit: 100 ads per day (resets every 12h)</p>
@@ -282,13 +282,13 @@
             </div>
         </div>
         <div class="footer">
-            <p>KX Earn Bot © 2025</p>
+            <p>KGX Earn Bot © 2025</p>
         </div>
     </div>
 
     <script>
-        // Configure bot name (change this for each bot)
-        const botName = '@KXearn1_bot'; // Change to '@Bot2' or '@Bot3' for other bots
+        // Bot Token (for reference, not directly used here)
+        const botToken = '8363134385:AAGwScIwgMqIjaGZl_Dg1IM6y98brWkfDRA';
 
         // Initialize Telegram WebApp
         let tg = window.Telegram.WebApp;
@@ -308,18 +308,21 @@
             walletAddress: "",
             withdrawals: [],
             referralRewardsPending: {},
-            lastCopyTime: 0
+            lastCopyTime: 0,
+            lastReferralCheck: 0, // For 24h referral check
+            referralMilestone: 0 // Track 30 or 50 ads milestone
         };
 
         function initApp() {
-            const savedData = localStorage.getItem(`userData_${botName.replace('@', '')}`);
+            const savedData = localStorage.getItem('userData');
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
                 const { userId, userName, ...rest } = parsedData;
                 userData = { ...userData, ...rest };
             }
-            if (!userData.referralCode) userData.referralCode = `ref${userData.userId}_${botName.replace('@', '')}`;
+            if (!userData.referralCode) userData.referralCode = `ref${userData.userId}`;
             checkAdReset();
+            checkReferralMilestone();
             updateUI();
             updateAdAvailability();
             checkReferralRewards();
@@ -329,35 +332,31 @@
         }
 
         function updateReferralLink() {
-            const referralLink = `https://t.me/${botName}?start=${userData.referralCode}`;
+            const referralLink = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money`;
             document.getElementById('ref-link').textContent = referralLink;
         }
 
         function checkForReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             const refCode = urlParams.get('start');
-            if (refCode && refCode !== userData.referralCode && !localStorage.getItem(`referred_${refCode}_${userData.userId}_${botName.replace('@', '')}`)) {
-                localStorage.setItem(`referred_${refCode}_${userData.userId}_${botName.replace('@', '')}`, 'true');
+            if (refCode && refCode !== userData.referralCode && !localStorage.getItem(`referred_${refCode}_${userData.userId}`)) {
+                localStorage.setItem(`referred_${refCode}_${userData.userId}`, 'true');
                 userData.referrals += 1;
                 saveUserData();
-                alert('Referral recorded! Referrer will earn 100 🪙 after 1 hour.');
+                alert('Referral recorded! Referrer will earn 100 🪙 after 24 hours if 2 referrals are completed.');
             }
         }
 
         function checkReferralRewards() {
-            const referralsGiven = JSON.parse(localStorage.getItem(`referralsGiven_${botName.replace('@', '')}`) || '{}');
-            for (let refCode in referralsGiven) {
-                if (!userData.referralRewardsPending[refCode]) {
-                    const timestamp = referralsGiven[refCode].timestamp;
-                    if (Date.now() - timestamp >= 3600000) { // 1 hour
-                        userData.coins += 100;
-                        userData.referralRewardsPending[refCode] = true;
-                        delete referralsGiven[refCode];
-                        localStorage.setItem(`referralsGiven_${botName.replace('@', '')}`, JSON.stringify(referralsGiven));
-                        saveUserData();
-                        updateUI();
-                        alert('You earned 100 🪙 from a referral!');
-                    }
+            const now = Date.now();
+            if (userData.lastReferralCheck && now - userData.lastReferralCheck >= 86400000) { // 24 hours = 86400000 ms
+                if (userData.referrals >= 2 && userData.referralMilestone > 0) {
+                    userData.coins += userData.referrals * 100; // 100 coins per referral
+                    userData.referralMilestone = 0; // Reset milestone after reward
+                    userData.lastReferralCheck = now;
+                    saveUserData();
+                    updateUI();
+                    alert('You earned ' + (userData.referrals * 100) + ' 🪙 for referrals!');
                 }
             }
         }
@@ -395,8 +394,7 @@
                 alert('Refer 2 friends to unlock ads after 20.');
                 return;
             }
-
-            const now = Date.now();
+    const now = Date.now();
             if (now - userData.lastAdTime < 15000) {
                 const timeLeft = Math.ceil((15000 - (now - userData.lastAdTime)) / 1000);
                 document.getElementById('next-ad').textContent = `Next ad in: ${timeLeft}s`;
@@ -409,16 +407,16 @@
 
             let adCall;
             if (type === 'interstitial') {
-                adCall = show_9892483().then(() => {
+                adCall = show_9896457().then(() => {
                     rewardUser();
-                    alert('Ad watched! Earned 20 🪙');
+                    alert('You have seen an ad! Earned 20 🪙');
                 }).catch(() => alert('Ad failed. Try again!'));
             } else if (type === 'popup') {
-                adCall = show_9892483('pop').then(() => {
+                adCall = show_9896457('pop').then(() => {
                     rewardUser();
                 }).catch(() => alert('Ad failed. Try again!'));
             } else if (type === 'inApp') {
-                adCall = show_9892483({
+                adCall = show_9896457({
                     type: 'inApp',
                     inAppSettings: { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false }
                 }).then(() => {
@@ -430,16 +428,28 @@
                 loader.style.display = 'none';
                 document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
             });
-                        }
+        }
+
         function rewardUser() {
             userData.coins += 20;
             userData.adsWatched += 1;
             userData.adsToday += 1;
             userData.lastAdTime = Date.now();
             if (userData.adsToday >= 100) userData.lastAdResetTime = Date.now();
+            checkReferralMilestone();
             updateUI();
             startCountdown();
             saveUserData();
+        }
+
+        function checkReferralMilestone() {
+            const now = Date.now();
+            if ((userData.adsWatched === 30 || userData.adsWatched === 50) && userData.referralMilestone !== userData.adsWatched) {
+                userData.referralMilestone = userData.adsWatched;
+                userData.lastReferralCheck = now;
+                alert('You have completed ' + userData.adsWatched + ' ads! Refer 2 friends within 24 hours to earn coins. Only copy the referral link otherwise you don\'t get coins.');
+                document.getElementById('ref-status').textContent = 'Refer 2 friends within 24h to earn 100 🪙 per referral!';
+            }
         }
 
         function startCountdown() {
@@ -505,26 +515,26 @@
             document.getElementById('total-coins').textContent = `${userData.coins} 🪙`;
             document.getElementById('ads-watched').textContent = userData.adsWatched;
             document.getElementById('ref-count').textContent = userData.referrals;
-            document.getElementById('ref-link').textContent = `https://t.me/${botName}?start=${userData.referralCode}`;
+            document.getElementById('ref-link').textContent = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money`;
             document.getElementById('ads-today').textContent = `Ads watched today: ${userData.adsToday}/100`;
             document.getElementById('withdraw-coins').textContent = `${userData.coins} 🪙`;
-            document.getElementById('ref-status').textContent = userData.referrals >= 2 ? '2 referrals completed!' : '';
+            document.getElementById('ref-status').textContent = userData.referrals >= 2 ? '2 referrals completed!' : (userData.referralMilestone > 0 ? 'Refer 2 friends within 24h to earn 100 🪙 per referral!' : '');
             document.getElementById('copyReferral').disabled = Date.now() - userData.lastCopyTime < 1800000;
         }
 
         function saveUserData() {
-            localStorage.setItem(`userData_${botName.replace('@', '')}`, JSON.stringify(userData));
-            const referralsGiven = JSON.parse(localStorage.getItem(`referralsGiven_${botName.replace('@', '')}`) || '{}');
+            localStorage.setItem('userData', JSON.stringify(userData));
+            const referralsGiven = JSON.parse(localStorage.getItem('referralsGiven') || '{}');
             referralsGiven[userData.referralCode] = { timestamp: Date.now() };
-            localStorage.setItem(`referralsGiven_${botName.replace('@', '')}`, JSON.stringify(referralsGiven));
+            localStorage.setItem('referralsGiven', JSON.stringify(referralsGiven));
         }
 
         function copyReferral() {
-            const referralLink = `https://t.me/${botName}?start=${userData.referralCode}`;
+            const referralLink = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money`;
             navigator.clipboard.writeText(referralLink).then(() => {
                 userData.lastCopyTime = Date.now();
                 saveUserData();
-                alert('Referral link copied! Share with friends.');
+                alert('Referral link copied! Only copy this otherwise you don\'t get coins. Share with friends.');
                 updateUI();
             }).catch(err => alert('Failed to copy: ' + err));
         }
@@ -573,6 +583,7 @@
         // Event Listeners
         document.getElementById('copyReferral').addEventListener('click', copyReferral);
         setInterval(checkAdReset, 60000); // हर 1 मिनट में चेक करो
+        setInterval(checkReferralRewards, 60000); // हर 1 मिनट में referral rewards चेक करो
         initApp();
     </script>
 </body>
