@@ -149,7 +149,7 @@
             margin: 15px auto;
             display: none;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .footer { text-align: center; margin-top: 15px; color: #666; font-size: 12px; }
         .withdraw-form { margin-top: 15px; }
         .form-group { margin-bottom: 10px; }
@@ -191,7 +191,8 @@
                 <div id="user-coins">0 🪙</div>
             </div>
         </div>
-         <div class="nav">
+        
+        <div class="nav">
             <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
             <button class="nav-btn" onclick="showSection('ads')">Ads</button>
             <button class="nav-btn" onclick="showSection('withdraw')">Withdraw</button>
@@ -221,12 +222,13 @@
                 <p>Share this link with friends to earn 100 coins after 1 hour! Use only this link for rewards.</p>
             </div>
             <div class="info-text">
-                <p>🎯 Daily Limit: 100 ads per day</p>
+                <p>🎯 Daily Limit: 100 ads per day (resets every 12h)</p>
                 <p>💰 Each ad gives you 20 🪙</p>
             </div>
             <button class="channel-btn" onclick="joinChannel()">Join Official Channel</button>
         </div>
-                <div id="ads" class="section">
+        
+        <div id="ads" class="section">
             <h2>Watch Ads & Earn Coins</h2>
             <p class="info-text">Click an ad to watch and earn 20 🪙. After 20 ads, refer 2 friends to unlock all ads.</p>
             <div class="ad-container" onclick="watchAd('interstitial')">
@@ -285,6 +287,9 @@
     </div>
 
     <script>
+        // Configure bot name (change this for each bot)
+        const botName = '@KXearn1_bot'; // Change to '@Bot2' or '@Bot3' for other bots
+
         // Initialize Telegram WebApp
         let tg = window.Telegram.WebApp;
         tg.expand();
@@ -307,13 +312,13 @@
         };
 
         function initApp() {
-            const savedData = localStorage.getItem('userData');
+            const savedData = localStorage.getItem(`userData_${botName.replace('@', '')}`);
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
                 const { userId, userName, ...rest } = parsedData;
                 userData = { ...userData, ...rest };
             }
-            if (!userData.referralCode) userData.referralCode = `ref${userData.userId}`;
+            if (!userData.referralCode) userData.referralCode = `ref${userData.userId}_${botName.replace('@', '')}`;
             checkAdReset();
             updateUI();
             updateAdAvailability();
@@ -324,15 +329,15 @@
         }
 
         function updateReferralLink() {
-            const referralLink = `https://t.me/KXearn1_bot?start=${userData.referralCode}`;
+            const referralLink = `https://t.me/${botName}?start=${userData.referralCode}`;
             document.getElementById('ref-link').textContent = referralLink;
         }
 
         function checkForReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             const refCode = urlParams.get('start');
-            if (refCode && refCode !== userData.referralCode && !localStorage.getItem(`referred_${refCode}_${userData.userId}`)) {
-                localStorage.setItem(`referred_${refCode}_${userData.userId}`, 'true');
+            if (refCode && refCode !== userData.referralCode && !localStorage.getItem(`referred_${refCode}_${userData.userId}_${botName.replace('@', '')}`)) {
+                localStorage.setItem(`referred_${refCode}_${userData.userId}_${botName.replace('@', '')}`, 'true');
                 userData.referrals += 1;
                 saveUserData();
                 alert('Referral recorded! Referrer will earn 100 🪙 after 1 hour.');
@@ -340,7 +345,7 @@
         }
 
         function checkReferralRewards() {
-            const referralsGiven = JSON.parse(localStorage.getItem('referralsGiven') || '{}');
+            const referralsGiven = JSON.parse(localStorage.getItem(`referralsGiven_${botName.replace('@', '')}`) || '{}');
             for (let refCode in referralsGiven) {
                 if (!userData.referralRewardsPending[refCode]) {
                     const timestamp = referralsGiven[refCode].timestamp;
@@ -348,7 +353,7 @@
                         userData.coins += 100;
                         userData.referralRewardsPending[refCode] = true;
                         delete referralsGiven[refCode];
-                        localStorage.setItem('referralsGiven', JSON.stringify(referralsGiven));
+                        localStorage.setItem(`referralsGiven_${botName.replace('@', '')}`, JSON.stringify(referralsGiven));
                         saveUserData();
                         updateUI();
                         alert('You earned 100 🪙 from a referral!');
@@ -425,8 +430,7 @@
                 loader.style.display = 'none';
                 document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
             });
-        }
-
+                        }
         function rewardUser() {
             userData.coins += 20;
             userData.adsWatched += 1;
@@ -485,10 +489,12 @@
 
         function checkAdReset() {
             const now = Date.now();
-            if (userData.adsToday >= 100 && now - userData.lastAdResetTime >= 43200000) {
+            if (userData.adsToday > 0 && now - userData.lastAdResetTime >= 43200000) {
                 userData.adsToday = 0;
                 userData.lastAdResetTime = now;
                 saveUserData();
+                updateUI();
+                alert('Your daily ad limit has reset! You can watch 100 ads again.');
             }
         }
 
@@ -499,7 +505,7 @@
             document.getElementById('total-coins').textContent = `${userData.coins} 🪙`;
             document.getElementById('ads-watched').textContent = userData.adsWatched;
             document.getElementById('ref-count').textContent = userData.referrals;
-            document.getElementById('ref-link').textContent = `https://t.me/KXearn1_bot?start=${userData.referralCode}`;
+            document.getElementById('ref-link').textContent = `https://t.me/${botName}?start=${userData.referralCode}`;
             document.getElementById('ads-today').textContent = `Ads watched today: ${userData.adsToday}/100`;
             document.getElementById('withdraw-coins').textContent = `${userData.coins} 🪙`;
             document.getElementById('ref-status').textContent = userData.referrals >= 2 ? '2 referrals completed!' : '';
@@ -507,14 +513,14 @@
         }
 
         function saveUserData() {
-            localStorage.setItem('userData', JSON.stringify(userData));
-            const referralsGiven = JSON.parse(localStorage.getItem('referralsGiven') || '{}');
+            localStorage.setItem(`userData_${botName.replace('@', '')}`, JSON.stringify(userData));
+            const referralsGiven = JSON.parse(localStorage.getItem(`referralsGiven_${botName.replace('@', '')}`) || '{}');
             referralsGiven[userData.referralCode] = { timestamp: Date.now() };
-            localStorage.setItem('referralsGiven', JSON.stringify(referralsGiven));
+            localStorage.setItem(`referralsGiven_${botName.replace('@', '')}`, JSON.stringify(referralsGiven));
         }
 
         function copyReferral() {
-            const referralLink = `https://t.me/KXearn1_bot?start=${userData.referralCode}`;
+            const referralLink = `https://t.me/${botName}?start=${userData.referralCode}`;
             navigator.clipboard.writeText(referralLink).then(() => {
                 userData.lastCopyTime = Date.now();
                 saveUserData();
@@ -566,7 +572,8 @@
 
         // Event Listeners
         document.getElementById('copyReferral').addEventListener('click', copyReferral);
+        setInterval(checkAdReset, 60000); // हर 1 मिनट में चेक करो
         initApp();
     </script>
 </body>
-     </html>
+</html>
