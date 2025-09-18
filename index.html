@@ -285,8 +285,7 @@
             <p>KGX Earn Bot © 2025</p>
         </div>
     </div>
-
-    <script>
+      <script>
         // Bot Token (for reference, not directly used here)
         const botToken = '8363134385:AAGwScIwgMqIjaGZl_Dg1IM6y98brWkfDRA';
 
@@ -314,13 +313,13 @@
         };
 
         function initApp() {
-            const savedData = localStorage.getItem('userData');
+            const savedData = localStorage.getItem(`userData_KGX_${userData.userId}`);
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
                 const { userId, userName, ...rest } = parsedData;
                 userData = { ...userData, ...rest };
             }
-            if (!userData.referralCode) userData.referralCode = `ref${userData.userId}`;
+            if (!userData.referralCode) userData.referralCode = `ref${userData.userId}_${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
             checkAdReset();
             checkReferralMilestone();
             updateUI();
@@ -332,15 +331,15 @@
         }
 
         function updateReferralLink() {
-            const referralLink = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money`;
+            const referralLink = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money with KGX Earn Bot`;
             document.getElementById('ref-link').textContent = referralLink;
         }
 
         function checkForReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             const refCode = urlParams.get('start');
-            if (refCode && refCode !== userData.referralCode && !localStorage.getItem(`referred_${refCode}_${userData.userId}`)) {
-                localStorage.setItem(`referred_${refCode}_${userData.userId}`, 'true');
+            if (refCode && refCode !== userData.referralCode && !localStorage.getItem(`referred_${refCode}_${userData.userId}_KGX`)) {
+                localStorage.setItem(`referred_${refCode}_${userData.userId}_KGX`, 'true');
                 userData.referrals += 1;
                 saveUserData();
                 alert('Referral recorded! Referrer will earn 100 🪙 after 24 hours if 2 referrals are completed.');
@@ -349,7 +348,7 @@
 
         function checkReferralRewards() {
             const now = Date.now();
-            if (userData.lastReferralCheck && now - userData.lastReferralCheck >= 86400000) { // 24 hours = 86400000 ms
+            if (userData.lastReferralCheck && now - userData.lastReferralCheck >= 86400000) { // 24 hours
                 if (userData.referrals >= 2 && userData.referralMilestone > 0) {
                     userData.coins += userData.referrals * 100; // 100 coins per referral
                     userData.referralMilestone = 0; // Reset milestone after reward
@@ -378,7 +377,7 @@
 
         function watchAd(type) {
             if (userData.adsToday >= 100) {
-                const timeLeft = Math.max(0, 43200000 - (Date.now() - userData.lastAdResetTime));
+                const timeLeft = Math.max(0, 43200000 - (Date.now() - userData.lastAdResetTime)); // 12h
                 if (timeLeft > 0) {
                     const hoursLeft = Math.ceil(timeLeft / 3600000);
                     alert(`Daily ad limit reached. Wait ${hoursLeft} hours.`);
@@ -394,7 +393,7 @@
                 alert('Refer 2 friends to unlock ads after 20.');
                 return;
             }
-    const now = Date.now();
+            const now = Date.now();
             if (now - userData.lastAdTime < 15000) {
                 const timeLeft = Math.ceil((15000 - (now - userData.lastAdTime)) / 1000);
                 document.getElementById('next-ad').textContent = `Next ad in: ${timeLeft}s`;
@@ -515,7 +514,7 @@
             document.getElementById('total-coins').textContent = `${userData.coins} 🪙`;
             document.getElementById('ads-watched').textContent = userData.adsWatched;
             document.getElementById('ref-count').textContent = userData.referrals;
-            document.getElementById('ref-link').textContent = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money`;
+            document.getElementById('ref-link').textContent = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money with KGX Earn Bot`;
             document.getElementById('ads-today').textContent = `Ads watched today: ${userData.adsToday}/100`;
             document.getElementById('withdraw-coins').textContent = `${userData.coins} 🪙`;
             document.getElementById('ref-status').textContent = userData.referrals >= 2 ? '2 referrals completed!' : (userData.referralMilestone > 0 ? 'Refer 2 friends within 24h to earn 100 🪙 per referral!' : '');
@@ -523,14 +522,14 @@
         }
 
         function saveUserData() {
-            localStorage.setItem('userData', JSON.stringify(userData));
-            const referralsGiven = JSON.parse(localStorage.getItem('referralsGiven') || '{}');
+            localStorage.setItem(`userData_KGX_${userData.userId}`, JSON.stringify(userData));
+            const referralsGiven = JSON.parse(localStorage.getItem(`referralsGiven_KGX_${userData.userId}`) || '{}');
             referralsGiven[userData.referralCode] = { timestamp: Date.now() };
-            localStorage.setItem('referralsGiven', JSON.stringify(referralsGiven));
+            localStorage.setItem(`referralsGiven_KGX_${userData.userId}`, JSON.stringify(referralsGiven));
         }
 
         function copyReferral() {
-            const referralLink = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money`;
+            const referralLink = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money with KGX Earn Bot`;
             navigator.clipboard.writeText(referralLink).then(() => {
                 userData.lastCopyTime = Date.now();
                 saveUserData();
