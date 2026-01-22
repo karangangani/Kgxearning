@@ -3,587 +3,367 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KGX Earn Bot</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src='//libtl.com/sdk.js' data-zone='9896457' data-sdk='show_9896457'></script>
+    <title>Infinity Wallet ♾️ - Non-Custodial Crypto Wallet</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>♾️</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBtbgeSVEwHGs50sHRe9GBle4xonalhIL0",
+            authDomain: "anontalk-pfvvb.firebaseapp.com",
+            projectId: "anontalk-pfvvb",
+            storageBucket: "anontalk-pfvvb.firebasestorage.app",
+            messagingSenderId: "600500129969",
+            appId: "1:600500129969:web:f19c1c0b3603a44a00d290"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        window.auth = auth;
+        window.signInWithGoogle = async () => {
+            try {
+                await signInWithPopup(auth, googleProvider);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        };
+
+        window.emailSignup = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                alert('Signup Error: ' + error.message);
+            }
+        };
+
+        window.emailLogin = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                alert('Login Error: ' + error.message);
+            }
+        };
+
+        window.logout = () => signOut(auth);
+    </script>
+
+    <!-- bip39 and ethers -->
+    <script src="https://cdn.jsdelivr.net/npm/bip39@3.0.4/dist/bip39.min.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+
+    <!-- QR Code for receive -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/dist/qrcode.min.js"></script>
+
+    <script>
+        // Web Crypto Helpers
+        async function deriveKey(passphrase, salt) {
+            const encoder = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(passphrase), 'PBKDF2', false, ['deriveBits', 'deriveKey']);
+            return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+        }
+
+        async function encrypt(text, passphrase) {
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const key = await deriveKey(passphrase, salt);
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text));
+            return btoa(String.fromCharCode(...salt)) + '.' + btoa(String.fromCharCode(...iv)) + '.' + btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+        }
+
+        async function decrypt(encryptedData, passphrase) {
+            const [saltB64, ivB64, dataB64] = encryptedData.split('.');
+            const salt = new Uint8Array(atob(saltB64).split('').map(c => c.charCodeAt(0)));
+            const iv = new Uint8Array(atob(ivB64).split('').map(c => c.charCodeAt(0)));
+            const data = new Uint8Array(atob(dataB64).split('').map(c => c.charCodeAt(0)));
+            const key = await deriveKey(passphrase, salt);
+            const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+            return new TextDecoder().decode(decrypted);
+        }
+
+        // Wallet Logic
+        const RPC_URL = 'https://bsc-dataseed.binance.org/'; // BSC for EVM
+        let currentWallet = null;
+        let provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+        let timer;
+
+        async function createWallet(passphrase) {
+            const entropy = crypto.getRandomValues(new Uint8Array(16));
+            const mnemonic = bip39.entropyToMnemonic(entropy);
+            document.getElementById('mnemonic-phrase').textContent = mnemonic;
+            document.getElementById('mnemonic-modal').style.display = 'block';
+
+            // Wait for confirmation
+            return new Promise((resolve) => {
+                document.getElementById('confirm-mnemonic').onclick = async () => {
+                    const userInput = document.getElementById('confirm-input').value.trim();
+                    if (userInput !== mnemonic) {
+                        alert('Mnemonic confirmation failed!');
+                        return;
+                    }
+                    const wallet = ethers.Wallet.fromMnemonic(mnemonic);
+                    const encryptedMnemonic = await encrypt(mnemonic, passphrase);
+                    localStorage.setItem(`wallet_${auth.currentUser.uid}`, JSON.stringify({ encryptedMnemonic, address: wallet.address }));
+                    loadWallet(wallet);
+                    resolve();
+                };
+            });
+        }
+
+        async function importWallet(mnemonic, passphrase) {
+            if (!bip39.validateMnemonic(mnemonic)) {
+                alert('Invalid mnemonic!');
+                return;
+            }
+            const wallet = ethers.Wallet.fromMnemonic(mnemonic);
+            const encryptedMnemonic = await encrypt(mnemonic, passphrase);
+            localStorage.setItem(`wallet_${auth.currentUser.uid}`, JSON.stringify({ encryptedMnemonic, address: wallet.address }));
+            loadWallet(wallet);
+        }
+
+        async function unlockWallet(passphrase) {
+            const stored = JSON.parse(localStorage.getItem(`wallet_${auth.currentUser.uid}`));
+            if (!stored) {
+                alert('No wallet found. Create or import one.');
+                return;
+            }
+            try {
+                const mnemonic = await decrypt(stored.encryptedMnemonic, passphrase);
+                const wallet = ethers.Wallet.fromMnemonic(mnemonic);
+                loadWallet(wallet);
+            } catch {
+                alert('Wrong passphrase!');
+            }
+        }
+
+        function loadWallet(wallet) {
+            currentWallet = wallet.connect(provider);
+            document.getElementById('address').textContent = wallet.address;
+            fetchBalance();
+            fetchHistory();
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('wallet-section').style.display = 'block';
+            startAutoLock();
+        }
+
+        async function fetchBalance() {
+            const balance = await provider.getBalance(currentWallet.address);
+            document.getElementById('balance').textContent = ethers.utils.formatEther(balance);
+        }
+
+        async function fetchHistory() {
+            const history = await provider.getTransactionCount(currentWallet.address); // Simple count for demo; use Alchemy for full history
+            document.getElementById('history').textContent = `Transactions: ${history}`;
+        }
+
+        async function sendTx() {
+            const to = document.getElementById('send-to').value;
+            const amount = document.getElementById('send-amount').value;
+            const tx = {
+                to,
+                value: ethers.utils.parseEther(amount)
+            };
+            const signedTx = await currentWallet.signTransaction(tx);
+            const response = await provider.sendTransaction(signedTx);
+            alert(`Tx sent: ${response.hash}`);
+            fetchBalance();
+        }
+
+        function showReceive() {
+            const qr = document.getElementById('qr-code');
+            qr.innerHTML = '';
+            QRCode.toCanvas(qr, currentWallet.address, { width: 200 });
+        }
+
+        function startAutoLock() {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                currentWallet = null;
+                alert('Wallet auto-locked due to inactivity.');
+                showAuth();
+            }, 300000); // 5 min
+        }
+
+        function showAuth() {
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('wallet-section').style.display = 'none';
+        }
+
+        // Live Prices
+        async function fetchPrices() {
+            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum,binancecoin&vs_currencies=usd');
+            const data = await res.json();
+            document.getElementById('prices').innerHTML = `
+                ETH: \[ {data.ethereum.usd}<br>
+                BNB: \]{data.binancecoin.usd}
+            `;
+        }
+
+        // Auth Listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('user-email').textContent = user.email;
+                const stored = localStorage.getItem(`wallet_${user.uid}`);
+                if (stored) {
+                    document.getElementById('unlock-section').style.display = 'block';
+                } else {
+                    document.getElementById('create-import-section').style.display = 'block';
+                }
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('logout-btn').style.display = 'block';
+                fetchPrices();
+            } else {
+                showAuth();
+                document.getElementById('login-form').style.display = 'block';
+                document.getElementById('logout-btn').style.display = 'none';
+            }
+        });
+
+        // Event Listeners
+        document.addEventListener('mousemove', startAutoLock);
+        document.addEventListener('keydown', startAutoLock);
+    </script>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        /* Black and White Theme */
         body {
-            background: linear-gradient(135deg, #2c3e50, #8e44ad);
-            color: #ecf0f1;
-            padding: 16px;
-            min-height: 100vh;
-            overflow-x: hidden;
-            animation: fadeIn 1s ease-in;
+            font-family: 'Roboto', sans-serif;
+            background-color: #0a0a0a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
         }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
         .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: rgba(15, 28, 58, 0.9);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(0, 255, 153, 0.5);
-            box-shadow: 0 8px 32px rgba(0, 255, 153, 0.2);
+            max-width: 800px;
+            margin: auto;
         }
-        .header {
-            text-align: center;
-            padding: 15px;
-            background: linear-gradient(90deg, #00ff99, #ff00ff);
-            border-radius: 10px 10px 0 0;
-            margin: -20px -20px 20px;
-            box-shadow: 0 4px 15px rgba(0, 255, 153, 0.4);
-        }
-        .header h1 { font-size: 24px; font-weight: 600; }
-        .header p { font-size: 14px; color: #b0b0ff; }
-        .user-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: rgba(26, 42, 68, 0.8);
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #00ff99;
-            transition: transform 0.3s;
-        }
-        .user-info:hover { transform: translateY(-5px); }
-        .nav {
-            display: flex;
-            justify-content: space-around;
-            margin: 15px 0;
-            background: rgba(26, 42, 68, 0.8);
-            border-radius: 10px;
-            padding: 10px;
-            border: 1px solid #00ff99;
-        }
-        .nav-btn {
-            padding: 10px 15px;
-            background: #0088cc;
+
+        button {
+            background-color: #333;
             color: #fff;
             border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-        .nav-btn.active { background: #006699; box-shadow: 0 0 10px rgba(0, 136, 204, 0.5); }
-        .nav-btn:hover { transform: scale(1.05); }
-        .section {
-            display: none;
-            padding: 20px;
-            background: rgba(26, 42, 68, 0.8);
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #00ff99;
-            animation: slideIn 0.5s ease-out;
-        }
-        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .section.active { display: block; }
-        .stats { display: flex; justify-content: space-between; margin: 15px 0; }
-        .stat-box {
-            background: rgba(15, 28, 58, 0.7);
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            flex: 1;
-            margin: 0 5px;
-            border: 1px solid #00ccff;
-            transition: all 0.3s;
-        }
-        .stat-box:hover { background: rgba(0, 191, 255, 0.2); }
-        .stat-value { font-size: 20px; color: #00ff99; font-weight: 600; }
-        .stat-label { font-size: 12px; color: #b0b0ff; }
-        .referral-section {
-            text-align: center;
-            padding: 15px;
-            background: rgba(15, 28, 58, 0.7);
-            border-radius: 10px;
-            margin: 15px 0;
-            border: 1px dashed #00ff99;
-        }
-        .referral-code {
-            padding: 10px;
-            background: rgba(26, 42, 68, 0.8);
-            border-radius: 8px;
-            margin: 10px 0;
-            font-size: 16px;
-            color: #00ff99;
-            font-weight: 600;
-            border: 1px solid #00ccff;
-        }
-        .info-text { text-align: center; margin: 10px 0; color: #b0b0ff; font-size: 12px; }
-        .ad-container {
-            background: linear-gradient(135deg, #1a1a2a, #2a2a4a);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            text-align: center;
-            border: 1px solid #0088cc;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .ad-container:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0, 136, 204, 0.3); }
-        .ad-title { font-size: 18px; margin-bottom: 5px; color: #0088cc; }
-        .ad-description { color: #aaa; margin-bottom: 10px; }
-        .btn {
             padding: 10px 20px;
-            background: #0088cc;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
+            margin: 5px;
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
         }
-        .btn:hover { background: #006699; transform: scale(1.05); }
-        .btn:disabled { background: #555; cursor: not-allowed; }
-        .loader {
-            border: 4px solid #333;
-            border-top: 4px solid #0088cc;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 15px auto;
+
+        input {
+            padding: 10px;
+            margin: 5px;
+            background-color: #222;
+            color: #fff;
+            border: 1px solid #444;
+        }
+          .modal {
             display: none;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .footer { text-align: center; margin-top: 15px; color: #666; font-size: 12px; }
-        .withdraw-form { margin-top: 15px; }
-        .form-group { margin-bottom: 10px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-        .form-group input {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #222;
-            color: #fff;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
         }
-        .ad-status { text-align: center; margin: 10px 0; padding: 10px; background: rgba(26, 42, 68, 0.8); border-radius: 10px; }
-        .countdown { font-size: 16px; color: #00ff99; font-weight: 600; margin: 10px 0; }
-        .channel-btn {
-            padding: 10px 20px;
-            background: #0088cc;
-            color: #fff;
-            border: none;
+
+        .modal-content {
+            background: #111;
+            padding: 20px;
             border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            margin-top: 10px;
-            transition: all 0.3s;
+            text-align: center;
         }
-        .channel-btn:hover { background: #006699; transform: scale(1.05); }
+
+        #wallet-section, #create-import-section, #unlock-section {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>KGX Earn Bot</h1>
-            <p>Watch Ads & Earn Rewards</p>
-            <div class="user-info">
-                <div>
-                    <div id="user-name">Loading...</div>
-                    <div id="user-id">ID: Loading...</div>
-                </div>
-                <div id="user-coins">0 🪙</div>
+        <h1>Infinity Wallet ♾️</h1>
+        <div id="auth-section">
+            <div id="login-form">
+                <input id="email" type="email" placeholder="Email" />
+                <input id="password" type="password" placeholder="Password" />
+                <button onclick="emailSignup()">Sign Up</button>
+                <button onclick="emailLogin()">Log In</button>
+                <button onclick="signInWithGoogle()">Google Sign In</button>
+            </div>
+            <button id="logout-btn" onclick="logout()" style="display:none;">Log Out</button>
+            <p id="user-email"></p>
+        </div>
+
+        <div id="create-import-section">
+            <h2>Create or Import Wallet</h2>
+            <button onclick="document.getElementById('create-modal').style.display='block'">Create New Wallet</button>
+            <button onclick="document.getElementById('import-modal').style.display='block'">Import Wallet</button>
+        </div>
+
+        <div id="unlock-section">
+            <h2>Unlock Wallet</h2>
+            <input id="unlock-pass" type="password" placeholder="Passphrase" />
+            <button onclick="unlockWallet(document.getElementById('unlock-pass').value)">Unlock</button>
+        </div>
+
+        <div id="wallet-section">
+            <h2>Dashboard</h2>
+            <p>Address: <span id="address"></span></p>
+            <p>Balance: <span id="balance"></span> BNB</p>
+            <p>History: <span id="history"></span></p>
+            <div>
+                <h3>Send</h3>
+                <input id="send-to" placeholder="To Address" />
+                <input id="send-amount" placeholder="Amount" />
+                <button onclick="sendTx()">Send</button>
+            </div>
+            <div>
+                <h3>Receive</h3>
+                <button onclick="showReceive()">Show QR</button>
+                <canvas id="qr-code"></canvas>
+            </div>
+            <div>
+                <h3>Live Prices</h3>
+                <div id="prices"></div>
             </div>
         </div>
-        
-        <div class="nav">
-            <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
-            <button class="nav-btn" onclick="showSection('ads')">Ads</button>
-            <button class="nav-btn" onclick="showSection('withdraw')">Withdraw</button>
-        </div>
-        
-        <div id="dashboard" class="section active">
-            <h2>Your Dashboard</h2>
-            <div class="stats">
-                <div class="stat-box">
-                    <div class="stat-value" id="total-coins">0 🪙</div>
-                    <div class="stat-label">Total Coins</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value" id="ads-watched">0</div>
-                    <div class="stat-label">Ads Watched</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value" id="ref-count">0</div>
-                    <div class="stat-label">Referrals</div>
-                </div>
-            </div>
-            <div class="referral-section">
-                <h3>Your Referral Link</h3>
-                <div class="referral-code" id="ref-link">Loading...</div>
-                <button class="btn" id="copyReferral">Copy Referral Link</button>
-                <p id="ref-status"></p>
-                <p>Only copy this otherwise you don't get coins. Share this link with friends to earn 100 coins after 24 hours if 2 referrals are completed!</p>
-            </div>
-            <div class="info-text">
-                <p>🎯 Daily Limit: 100 ads per day (resets every 12h)</p>
-                <p>💰 Each ad gives you 20 🪙</p>
-            </div>
-            <button class="channel-btn" onclick="joinChannel()">Join Official Channel</button>
-        </div>
-        
-        <div id="ads" class="section">
-            <h2>Watch Ads & Earn Coins</h2>
-            <p class="info-text">Click an ad to watch and earn 20 🪙. After 20 ads, refer 2 friends to unlock all ads.</p>
-            <div class="ad-container" onclick="watchAd('interstitial')">
-                <div class="ad-title">Rewarded Interstitial Ad</div>
-                <div class="ad-description">Watch a full-screen ad and earn 20 🪙</div>
-                <button class="btn">Watch Ad</button>
-            </div>
-            <div class="ad-container" onclick="watchAd('popup')">
-                <div class="ad-title">Rewarded Popup Ad</div>
-                <div class="ad-description">Watch a popup ad and earn 20 🪙</div>
-                <button class="btn">Watch Ad</button>
-            </div>
-            <div class="ad-container" onclick="watchAd('inApp')">
-                <div class="ad-title">In-App Interstitial Ad</div>
-                <div class="ad-description">Watch an in-app ad and earn 20 🪙</div>
-                <button class="btn">Watch Ad</button>
-            </div>
-            <div class="loader" id="ad-loader"></div>
-            <div class="ad-status">
-                <p id="ads-today">Ads watched today: 0/100</p>
-                <p id="next-ad">Next ad available: Now</p>
-                <div class="countdown" id="countdown" style="display: none;">15s</div>
-                <p id="ad-lock-status"></p>
+
+        <!-- Modals -->
+        <div id="mnemonic-modal" class="modal">
+            <div class="modal-content">
+                <h2>Your Recovery Phrase</h2>
+                <p>Warning: Store securely. Lost phrase = lost funds!</p>
+                <p id="mnemonic-phrase"></p>
+                <input id="confirm-input" placeholder="Re-enter phrase to confirm" />
+                <button id="confirm-mnemonic">Confirm</button>
             </div>
         </div>
-        
-        <div id="withdraw" class="section">
-            <h2>Withdraw Your Earnings</h2>
-            <p class="info-text">Minimum withdrawal: 50,000 🪙 = 25 USDT | Must have 20 referrals</p>
-            <div class="stats">
-                <div class="stat-box">
-                    <div class="stat-value" id="withdraw-coins">0 🪙</div>
-                    <div class="stat-label">Your Coins</div>
-                </div>
-            </div>
-            <div class="withdraw-form">
-                <div class="form-group">
-                    <label for="wallet-address">Binance ERC20 Wallet Address</label>
-                    <input type="text" id="wallet-address" placeholder="Enter your wallet address">
-                </div>
-                <div class="form-group">
-                    <label for="withdraw-amount">Amount to Withdraw (Coins)</label>
-                    <input type="number" id="withdraw-amount" placeholder="Min 50,000 🪙">
-                </div>
-                <div class="form-group">
-                    <label for="referrals">Number of Referrals</label>
-                    <input type="number" id="referrals" placeholder="Min 20 referrals">
-                </div>
-                <button class="btn" onclick="requestWithdrawal()">Request Withdrawal</button>
-                <button class="btn" onclick="makeBinanceAccount()" style="margin-top: 10px;">Make account on Binance</button>
+
+        <div id="create-modal" class="modal">
+            <div class="modal-content">
+                <h2>Create Wallet</h2>
+                <input id="create-pass" type="password" placeholder="Passphrase" />
+                <button onclick="createWallet(document.getElementById('create-pass').value).then(() => this.parentNode.parentNode.style.display='none')">Create</button>
             </div>
         </div>
-        <div class="footer">
-            <p>KGX Earn Bot © 2025</p>
+
+        <div id="import-modal" class="modal">
+            <div class="modal-content">
+                <h2>Import Wallet</h2>
+                <input id="import-mnemonic" placeholder="12-word phrase" />
+                <input id="import-pass" type="password" placeholder="Passphrase" />
+                <button onclick="importWallet(document.getElementById('import-mnemonic').value, document.getElementById('import-pass').value).then(() => this.parentNode.parentNode.style.display='none')">Import</button>
+            </div>
         </div>
     </div>
-      <script>
-        // Bot Token (for reference, not directly used here)
-        const botToken = '8363134385:AAGwScIwgMqIjaGZl_Dg1IM6y98brWkfDRA';
-
-        // Initialize Telegram WebApp
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation();
-
-        let userData = {
-            coins: 0,
-            adsWatched: 0,
-            adsToday: 0,
-            lastAdTime: 0,
-            lastAdResetTime: 0,
-            referrals: 0,
-            referralCode: "",
-            userId: tg.initDataUnsafe.user?.id || Math.floor(Math.random() * 1000000),
-            userName: tg.initDataUnsafe.user?.first_name || "Telegram User",
-            walletAddress: "",
-            withdrawals: [],
-            referralRewardsPending: {},
-            lastCopyTime: 0,
-            lastReferralCheck: 0, // For 24h referral check
-            referralMilestone: 0 // Track 30 or 50 ads milestone
-        };
-
-        function initApp() {
-            const savedData = localStorage.getItem(`userData_KGX_${userData.userId}`);
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                const { userId, userName, ...rest } = parsedData;
-                userData = { ...userData, ...rest };
-            }
-            if (!userData.referralCode) userData.referralCode = `ref${userData.userId}_${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
-            checkAdReset();
-            checkReferralMilestone();
-            updateUI();
-            updateAdAvailability();
-            checkReferralRewards();
-            checkReferralCopyRewards();
-            checkForReferral();
-            updateReferralLink();
-        }
-
-        function updateReferralLink() {
-            const referralLink = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money with KGX Earn Bot`;
-            document.getElementById('ref-link').textContent = referralLink;
-        }
-
-        function checkForReferral() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const refCode = urlParams.get('start');
-            if (refCode && refCode !== userData.referralCode && !localStorage.getItem(`referred_${refCode}_${userData.userId}_KGX`)) {
-                localStorage.setItem(`referred_${refCode}_${userData.userId}_KGX`, 'true');
-                userData.referrals += 1;
-                saveUserData();
-                alert('Referral recorded! Referrer will earn 100 🪙 after 24 hours if 2 referrals are completed.');
-            }
-        }
-
-        function checkReferralRewards() {
-            const now = Date.now();
-            if (userData.lastReferralCheck && now - userData.lastReferralCheck >= 86400000) { // 24 hours
-                if (userData.referrals >= 2 && userData.referralMilestone > 0) {
-                    userData.coins += userData.referrals * 100; // 100 coins per referral
-                    userData.referralMilestone = 0; // Reset milestone after reward
-                    userData.lastReferralCheck = now;
-                    saveUserData();
-                    updateUI();
-                    alert('You earned ' + (userData.referrals * 100) + ' 🪙 for referrals!');
-                }
-            }
-        }
-
-        function checkReferralCopyRewards() {
-            if (userData.lastCopyTime && Date.now() - userData.lastCopyTime < 1800000) { // 30 min cooldown
-                document.getElementById('copyReferral').disabled = true;
-            } else {
-                document.getElementById('copyReferral').disabled = false;
-            }
-        }
-
-        function showSection(sectionId) {
-            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        function watchAd(type) {
-            if (userData.adsToday >= 100) {
-                const timeLeft = Math.max(0, 43200000 - (Date.now() - userData.lastAdResetTime)); // 12h
-                if (timeLeft > 0) {
-                    const hoursLeft = Math.ceil(timeLeft / 3600000);
-                    alert(`Daily ad limit reached. Wait ${hoursLeft} hours.`);
-                    return;
-                } else {
-                    userData.adsToday = 0;
-                    userData.lastAdResetTime = Date.now();
-                    saveUserData();
-                }
-            }
-            if (userData.adsWatched >= 20 && userData.referrals < 2) {
-                document.getElementById('ad-lock-status').textContent = 'Refer 2 friends to unlock more ads!';
-                alert('Refer 2 friends to unlock ads after 20.');
-                return;
-            }
-            const now = Date.now();
-            if (now - userData.lastAdTime < 15000) {
-                const timeLeft = Math.ceil((15000 - (now - userData.lastAdTime)) / 1000);
-                document.getElementById('next-ad').textContent = `Next ad in: ${timeLeft}s`;
-                return;
-            }
-
-            const loader = document.getElementById('ad-loader');
-            loader.style.display = 'block';
-            document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
-
-            let adCall;
-            if (type === 'interstitial') {
-                adCall = show_9896457().then(() => {
-                    rewardUser();
-                    alert('You have seen an ad! Earned 20 🪙');
-                }).catch(() => alert('Ad failed. Try again!'));
-            } else if (type === 'popup') {
-                adCall = show_9896457('pop').then(() => {
-                    rewardUser();
-                }).catch(() => alert('Ad failed. Try again!'));
-            } else if (type === 'inApp') {
-                adCall = show_9896457({
-                    type: 'inApp',
-                    inAppSettings: { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false }
-                }).then(() => {
-                    rewardUser();
-                }).catch(() => alert('Ad failed. Try again!'));
-            }
-
-            adCall.finally(() => {
-                loader.style.display = 'none';
-                document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
-            });
-        }
-
-        function rewardUser() {
-            userData.coins += 20;
-            userData.adsWatched += 1;
-            userData.adsToday += 1;
-            userData.lastAdTime = Date.now();
-            if (userData.adsToday >= 100) userData.lastAdResetTime = Date.now();
-            checkReferralMilestone();
-            updateUI();
-            startCountdown();
-            saveUserData();
-        }
-
-        function checkReferralMilestone() {
-            const now = Date.now();
-            if ((userData.adsWatched === 30 || userData.adsWatched === 50) && userData.referralMilestone !== userData.adsWatched) {
-                userData.referralMilestone = userData.adsWatched;
-                userData.lastReferralCheck = now;
-                alert('You have completed ' + userData.adsWatched + ' ads! Refer 2 friends within 24 hours to earn coins. Only copy the referral link otherwise you don\'t get coins.');
-                document.getElementById('ref-status').textContent = 'Refer 2 friends within 24h to earn 100 🪙 per referral!';
-            }
-        }
-
-        function startCountdown() {
-            const countdown = document.getElementById('countdown');
-            const nextAd = document.getElementById('next-ad');
-            countdown.style.display = 'block';
-            nextAd.style.display = 'none';
-            let timeLeft = 15;
-            const timer = setInterval(() => {
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    countdown.style.display = 'none';
-                    nextAd.style.display = 'block';
-                    updateAdAvailability();
-                } else {
-                    countdown.textContent = `${timeLeft}s`;
-                    timeLeft--;
-                }
-            }, 1000);
-        }
-
-        function updateAdAvailability() {
-            const now = Date.now();
-            if (userData.adsToday >= 100) {
-                const timeLeft = Math.max(0, 43200000 - (now - userData.lastAdResetTime));
-                if (timeLeft > 0) {
-                    const hoursLeft = Math.ceil(timeLeft / 3600000);
-                    document.getElementById('next-ad').textContent = `Next ads in: ${hoursLeft} hours`;
-                } else {
-                    userData.adsToday = 0;
-                    userData.lastAdResetTime = now;
-                    saveUserData();
-                    document.getElementById('next-ad').textContent = 'Next ads: Now';
-                }
-            } else if (now - userData.lastAdTime < 15000) {
-                const timeLeft = Math.ceil((15000 - (now - userData.lastAdTime)) / 1000);
-                document.getElementById('next-ad').textContent = `Next ad in: ${timeLeft}s`;
-            } else {
-                document.getElementById('next-ad').textContent = 'Next ad: Now';
-            }
-            if (userData.adsWatched >= 20 && userData.referrals < 2) {
-                document.getElementById('ad-lock-status').textContent = 'Refer 2 friends to unlock more ads!';
-            } else {
-                document.getElementById('ad-lock-status').textContent = '';
-            }
-        }
-
-        function checkAdReset() {
-            const now = Date.now();
-            if (userData.adsToday > 0 && now - userData.lastAdResetTime >= 43200000) {
-                userData.adsToday = 0;
-                userData.lastAdResetTime = now;
-                saveUserData();
-                updateUI();
-                alert('Your daily ad limit has reset! You can watch 100 ads again.');
-            }
-        }
-
-        function updateUI() {
-            document.getElementById('user-name').textContent = userData.userName;
-            document.getElementById('user-id').textContent = `ID: ${userData.userId}`;
-            document.getElementById('user-coins').textContent = `${userData.coins} 🪙`;
-            document.getElementById('total-coins').textContent = `${userData.coins} 🪙`;
-            document.getElementById('ads-watched').textContent = userData.adsWatched;
-            document.getElementById('ref-count').textContent = userData.referrals;
-            document.getElementById('ref-link').textContent = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money with KGX Earn Bot`;
-            document.getElementById('ads-today').textContent = `Ads watched today: ${userData.adsToday}/100`;
-            document.getElementById('withdraw-coins').textContent = `${userData.coins} 🪙`;
-            document.getElementById('ref-status').textContent = userData.referrals >= 2 ? '2 referrals completed!' : (userData.referralMilestone > 0 ? 'Refer 2 friends within 24h to earn 100 🪙 per referral!' : '');
-            document.getElementById('copyReferral').disabled = Date.now() - userData.lastCopyTime < 1800000;
-        }
-
-        function saveUserData() {
-            localStorage.setItem(`userData_KGX_${userData.userId}`, JSON.stringify(userData));
-            const referralsGiven = JSON.parse(localStorage.getItem(`referralsGiven_KGX_${userData.userId}`) || '{}');
-            referralsGiven[userData.referralCode] = { timestamp: Date.now() };
-            localStorage.setItem(`referralsGiven_KGX_${userData.userId}`, JSON.stringify(referralsGiven));
-        }
-
-        function copyReferral() {
-            const referralLink = `http://t.me/MakiBtcbot?start=${userData.referralCode} Join and Earn Money with KGX Earn Bot`;
-            navigator.clipboard.writeText(referralLink).then(() => {
-                userData.lastCopyTime = Date.now();
-                saveUserData();
-                alert('Referral link copied! Only copy this otherwise you don\'t get coins. Share with friends.');
-                updateUI();
-            }).catch(err => alert('Failed to copy: ' + err));
-        }
-
-        function joinChannel() {
-            window.open('https://t.me/earncryptofree24', '_blank');
-            alert('Please join the channel to continue earning!');
-        }
-
-        function requestWithdrawal() {
-            const walletAddress = document.getElementById('wallet-address').value;
-            const withdrawAmount = parseInt(document.getElementById('withdraw-amount').value);
-            const referrals = parseInt(document.getElementById('referrals').value);
-
-            if (!walletAddress || !withdrawAmount || !referrals) {
-                alert('Please fill all fields!');
-                return;
-            }
-            if (withdrawAmount < 50000) {
-                alert('Minimum withdrawal is 50,000 🪙!');
-                return;
-            }
-            if (referrals < 20) {
-                alert('You need at least 20 referrals!');
-                return;
-            }
-            if (withdrawAmount > userData.coins) {
-                alert('Not enough coins!');
-                return;
-            }
-
-            userData.coins -= withdrawAmount;
-            userData.withdrawals.push({ amount: withdrawAmount, address: walletAddress, date: new Date().toISOString(), status: 'pending' });
-            saveUserData();
-            alert('Withdrawal requested! Await admin approval.');
-            updateUI();
-            document.getElementById('wallet-address').value = '';
-            document.getElementById('withdraw-amount').value = '';
-            document.getElementById('referrals').value = '';
-        }
-
-        function makeBinanceAccount() {
-            window.open('https://www.binance.com/referral/earn-together/refer-in-hotsummer/claim?hl=en&ref=GRO_20338_0CPVP&utm_source=default', '_blank');
-        }
-
-        // Event Listeners
-        document.getElementById('copyReferral').addEventListener('click', copyReferral);
-        setInterval(checkAdReset, 60000); // हर 1 मिनट में चेक करो
-        setInterval(checkReferralRewards, 60000); // हर 1 मिनट में referral rewards चेक करो
-        initApp();
-    </script>
 </body>
 </html>
