@@ -3,117 +3,139 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Infinity ♾️ Wallet — Improved</title>
+<title>Infinity ♾️ Wallet — Phantom-Inspired</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
 <style>
-  :root{--bg:#000;--card:#0c0c0c;--muted:#9fb3c8;--accent:#fff;--danger:#ff6b6b}
-  body{margin:0;background:var(--bg);color:#fff;font-family:Inter,Arial;padding:18px}
-  .wrap{max-width:980px;margin:0 auto}
-  .card{background:var(--card);padding:14px;border-radius:10px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03)}
-  h1{margin:0 0 8px;font-size:20px}
-  input,select,textarea{width:100%;padding:10px;border-radius:8px;background:#060707;border:1px solid rgba(255,255,255,0.03);color:#fff}
-  button{padding:10px 12px;border-radius:8px;border:none;cursor:pointer;background:var(--accent);color:#000;font-weight:700}
-  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
-  .row{display:flex;gap:8px;align-items:center}
-  .small{color:var(--muted);font-size:13px}
-  .danger{color:var(--danger)}
-  .hidden{display:none}
-  .mn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
-  .mn-cell{background:#050606;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);font-weight:600}
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;padding:12px}
-  .modal-card{background:#071217;padding:16px;border-radius:12px;max-width:720px;width:100%}
-  .muted{color:var(--muted)}
-  pre{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;color:#cfefff;overflow:auto}
-  @media(max-width:720px){ .mn-grid{grid-template-columns:repeat(2,1fr)} .row{flex-direction:column} }
+  :root {
+    --bg: #04040d; /* Dark background like Phantom */
+    --card: #0f0f1a; /* Subtle card bg */
+    --muted: #a5a5c3; /* Muted text */
+    --accent: #7e57c2; /* Purple accent like Phantom */
+    --accent-hover: #9575cd;
+    --danger: #ff5252;
+    --success: #4caf50;
+    --border: rgba(255,255,255,0.05);
+    --input-bg: #1a1a2e;
+  }
+  body { margin: 0; background: var(--bg); color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  .card { background: var(--card); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+  h1 { margin: 0 0 12px; font-size: 24px; color: var(--accent); }
+  input, select, textarea { width: 100%; padding: 12px; border-radius: 8px; background: var(--input-bg); border: 1px solid var(--border); color: #fff; font-size: 14px; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  button { padding: 12px 16px; border-radius: 8px; border: none; cursor: pointer; background: var(--accent); color: #fff; font-weight: 600; transition: background 0.2s; }
+  button:hover { background: var(--accent-hover); }
+  button.ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  button.danger { background: var(--danger); }
+  .row { display: flex; gap: 12px; align-items: center; }
+  .small { color: var(--muted); font-size: 13px; }
+  .danger { color: var(--danger); }
+  .success { color: var(--success); }
+  .hidden { display: none; }
+  .mn-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 12px; }
+  .mn-cell { background: var(--input-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-weight: 600; text-align: center; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 1000; }
+  .modal-card { background: var(--card); padding: 20px; border-radius: 16px; max-width: 800px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .muted { color: var(--muted); }
+  pre { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; color: #d1e4ff; overflow: auto; font-size: 13px; }
+  .loader { border: 2px solid var(--accent); border-top: 2px solid transparent; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; margin-left: 8px; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @media (max-width: 768px) { .mn-grid { grid-template-columns: repeat(2,1fr); } .row { flex-direction: column; gap: 8px; } }
 </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Infinity ♾️ Wallet — Improved</h1>
+    <h1>Infinity ♾️ Wallet — Phantom-Inspired</h1>
     <div class="card" id="authCard">
       <div class="small" id="statusLine">Status: Not signed in</div>
-      <div style="margin-top:10px;" id="authForm">
+      <div style="margin-top:12px;" id="authForm">
         <input id="email" placeholder="Email (Gmail recommended)" />
-        <input id="password" type="password" placeholder="Password (min 6 chars)" style="margin-top:8px" />
-        <div class="row" style="margin-top:10px">
+        <input id="password" type="password" placeholder="Password (min 6 chars)" style="margin-top:10px" />
+        <div class="row" style="margin-top:12px">
           <button id="btnSignIn">Sign in</button>
           <button class="ghost" id="btnSignUp">Create account</button>
           <button class="ghost hidden" id="btnSignOut">Sign out</button>
         </div>
-        <div class="small muted" style="margin-top:8px" id="authHelp">Make sure domain added in Firebase → Auth → Authorized domains</div>
+        <div class="small muted" style="margin-top:10px" id="authHelp">Make sure domain added in Firebase → Auth → Authorized domains</div>
       </div>
     </div>
 
     <div id="app" class="hidden">
       <div class="row">
-        <div class="card" style="flex:1;min-width:260px">
-          <h3 style="margin-top:0">Wallet Controls</h3>
-          <div class="small">Create/import non-custodial wallet (BIP-39). Phrase shown once in numbered view. Optionally save encrypted locally.</div>
-          <div class="row" style="margin-top:10px">
+        <div class="card" style="flex:1;min-width:280px">
+          <h3 style="margin-top:0;color:var(--accent)">Wallet Controls</h3>
+          <div class="small">Create or import a non-custodial BIP-39 wallet. Recovery phrase shown once in secure view. Optionally encrypt and save locally.</div>
+          <div class="row" style="margin-top:12px">
             <button id="btnCreate">Create New Wallet</button>
             <button class="ghost" id="btnImport">Import Wallet</button>
             <button class="ghost hidden" id="btnUnlock">Unlock Local</button>
           </div>
-          <div class="small danger" style="margin-top:8px">Never share phrase. We never send it to server.</div>
+          <div class="small danger" style="margin-top:10px">Never share your recovery phrase. It never leaves your device.</div>
         </div>
 
-        <div class="card" style="width:380px;min-width:260px">
-          <h3 style="margin-top:0">Dashboard</h3>
-          <div class="small">Signed in: <div id="userInfo" style="font-weight:700;margin-top:6px">-</div></div>
-          <div style="margin-top:8px" class="small">Address</div>
-          <div id="address" style="font-weight:700;margin-top:6px">-</div>
-          <div style="margin-top:8px" class="small">Network
-            <select id="network" style="margin-left:6px">
-              <option value="goerli">Goerli (test)</option>
-              <option value="sepolia">Sepolia (test)</option>
+        <div class="card" style="width:400px;min-width:280px">
+          <h3 style="margin-top:0;color:var(--accent)">Dashboard</h3>
+          <div class="small">Signed in as: <span id="userInfo" style="font-weight:600;color:#fff">-</span></div>
+          <div style="margin-top:10px" class="small">Address: <span id="address" style="font-weight:600;color:#fff;word-break:break-all">-</span></div>
+          <div style="margin-top:10px" class="small">Network:
+            <select id="network" style="margin-left:8px;background:var(--input-bg);border-color:var(--border)">
+              <option value="sepolia">Sepolia (testnet)</option>
               <option value="homestead">Mainnet</option>
             </select>
           </div>
-          <div style="margin-top:8px" class="small">Balance: <span id="balance">-</span></div>
-          <div style="margin-top:8px" class="row">
-            <button class="ghost" id="btnRefresh">Refresh</button>
+          <div style="margin-top:10px" class="small">Balance: <span id="balance">-</span></div>
+          <div style="margin-top:12px" class="row">
+            <button class="ghost" id="btnRefresh">Refresh Balance</button>
             <button class="ghost" id="btnExport">Export Phrase</button>
             <button class="ghost danger" id="btnDeleteLocal">Delete Local</button>
           </div>
         </div>
       </div>
 
-      <div id="sendCard" class="card hidden" style="margin-top:12px">
-        <h3 style="margin-top:0">Send ETH</h3>
-        <div class="row" style="margin-bottom:8px">
-          <input id="to" placeholder="Recipient address" />
-          <input id="amt" placeholder="Amount (ETH)" style="width:140px" />
+      <div id="sendCard" class="card hidden" style="margin-top:16px">
+        <h3 style="margin-top:0;color:var(--accent)">Send ETH</h3>
+        <div style="margin-bottom:10px">
+          <input id="to" placeholder="Recipient address (0x...)" />
         </div>
-        <div class="row"><button id="btnSend">Send (decrypt & sign)</button><div id="txStatus" class="small" style="margin-left:8px"></div></div>
-        <div style="margin-top:8px" class="small">Explorer: <a id="explorer" target="_blank">Open address</a></div>
-        <div style="margin-top:6px" class="small">Storage: <span id="storeStatus">none</span></div>
+        <div style="margin-bottom:10px">
+          <input id="amt" type="number" step="0.000000001" placeholder="Amount (ETH)" />
+        </div>
+        <div class="row">
+          <button id="btnSend">Send</button>
+          <div id="txStatus" class="small" style="margin-left:12px"></div>
+        </div>
+        <div style="margin-top:10px" class="small">Explorer: <a id="explorer" target="_blank" style="color:var(--accent)">Open address</a></div>
+        <div style="margin-top:8px" class="small">Local Storage: <span id="storeStatus">none</span></div>
       </div>
     </div>
 
   </div>
 
-  <!-- Modal for mnemonic display -->
+  <!-- Modal for mnemonic display (Phantom-like secure view) -->
   <div id="mnModal" class="modal hidden">
     <div class="modal-card">
-      <h3>Save your recovery phrase</h3>
-      <div class="small danger">This phrase is shown ONLY ONCE. Copy and store offline. Do not share.</div>
+      <h3 style="color:var(--accent)">Your Recovery Phrase</h3>
+      <div class="small danger">Shown ONLY ONCE. Write it down securely offline. Do not share or screenshot.</div>
       <div id="mnGrid" class="mn-grid"></div>
-      <div style="margin-top:10px" class="row">
-        <button id="copyPhrase">Copy phrase</button>
-        <button class="ghost" id="downloadPhrase">Download (text)</button>
-        <div class="right">
-          <input id="confirmSaved" placeholder='Type "I SAVED" to confirm' />
-          <button class="ghost" id="confirmSaveBtn">Confirm</button>
-        </div>
+      <div style="margin-top:12px" class="row">
+        <button id="copyPhrase">Copy Phrase</button>
+        <button class="ghost" id="downloadPhrase">Download TXT</button>
       </div>
-      <div style="margin-top:8px" class="small">After confirming you can encrypt & save local copy or skip saving locally.</div>
-      <div style="margin-top:8px" id="mnActions" class="row hidden">
-        <input id="savePwd" placeholder="Local encryption password (min 6 chars)" type="password" />
+      <div style="margin-top:12px">
+        <input id="confirmSaved" placeholder='Type "I HAVE SAVED IT SECURELY" to continue' />
+      </div>
+      <div style="margin-top:12px" class="row">
+        <button id="confirmSaveBtn">Confirm</button>
+      </div>
+      <div style="margin-top:12px" class="small muted">After confirming, you can encrypt and save a local copy or skip.</div>
+      <div style="margin-top:12px" id="mnActions" class="row hidden">
+        <input id="savePwd" type="password" placeholder="Local encryption password (min 8 chars)" />
         <button id="saveLocalBtn">Encrypt & Save Locally</button>
         <button class="ghost" id="skipSaveBtn">Skip Saving</button>
       </div>
-      <div style="margin-top:8px;text-align:right"><button id="closeMn" class="ghost">Close</button></div>
+      <div style="margin-top:12px;text-align:right"><button class="ghost" id="closeMn">Close</button></div>
     </div>
   </div>
 
@@ -121,7 +143,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-  /* ----- CONFIG ----- (your firebase config) */
+
+// ----- CONFIG ----- (Replace with your Firebase config)
 const firebaseConfig = {
   apiKey: "AIzaSyBtbgeSVEwHGs50sHRe9GBle4xonalhIL0",
   authDomain: "anontalk-pfvvb.firebaseapp.com",
@@ -130,15 +153,18 @@ const firebaseConfig = {
   messagingSenderId: "600500129969",
   appId: "1:600500129969:web:f19c1c0b3603a44a00d290"
 };
-/* RPCs (replace mainnet before real funds) */
-const RPC_URLS = { goerli:"https://rpc.ankr.com/eth_goerli", sepolia:"https://rpc.ankr.com/eth_sepolia", homestead:"https://mainnet.infura.io/v3/YOUR_INFURA_KEY" };
+// Public RPCs (using Ankr for reliability; replace mainnet if needed with your key)
+const RPC_URLS = {
+  sepolia: "https://rpc.ankr.com/eth_sepolia",
+  homestead: "https://rpc.ankr.com/eth"  // Public Ankr for mainnet
+};
 
-/* ----- INIT ----- */
+// ----- INIT -----
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* UI refs */
+// UI refs
 const statusLine = document.getElementById('statusLine');
 const emailEl = document.getElementById('email'), pwdEl = document.getElementById('password');
 const btnSignIn = document.getElementById('btnSignIn'), btnSignUp = document.getElementById('btnSignUp'), btnSignOut = document.getElementById('btnSignOut');
@@ -155,68 +181,102 @@ const confirmSaveBtn = document.getElementById('confirmSaveBtn'), mnActions = do
 const savePwd = document.getElementById('savePwd'), saveLocalBtn = document.getElementById('saveLocalBtn'), skipSaveBtn = document.getElementById('skipSaveBtn');
 const copyPhraseBtn = document.getElementById('copyPhrase'), downloadPhraseBtn = document.getElementById('downloadPhrase'), closeMn = document.getElementById('closeMn');
 
-let state = { user:null, provider:null, walletAddress:null, network:networkSel.value, currentMnemonic:null };
+let state = { user: null, provider: null, walletAddress: null, network: networkSel.value, currentMnemonic: null };
 
-/* ----- WEB CRYPTO helpers (PBKDF2 + AES-GCM) ----- */
-const bytesToHex = (bytes) => Array.from(new Uint8Array(bytes)).map(b=>b.toString(16).padStart(2,'0')).join('');
-const hexToBytes = (hex)=>{ if(!hex) return new Uint8Array(); const out=new Uint8Array(hex.length/2); for(let i=0;i<out.length;i++) out[i]=parseInt(hex.substr(i*2,2),16); return out; };
-async function deriveKey(password, saltHex){ const enc=new TextEncoder(); const passKey = await crypto.subtle.importKey('raw', enc.encode(password), {name:'PBKDF2'}, false, ['deriveKey']); const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt:hexToBytes(saltHex), iterations:150000, hash:'SHA-256'}, passKey, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']); return key; }
-async function encryptText(password, plaintext){ const salt = crypto.getRandomValues(new Uint8Array(16)); const iv = crypto.getRandomValues(new Uint8Array(12)); const key = await deriveKey(password, bytesToHex(salt)); const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(plaintext)); return {salt:bytesToHex(salt), iv:bytesToHex(iv), cipher:bytesToHex(ct)}; }
-async function decryptText(password, obj){ const key = await deriveKey(password, obj.salt); const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:hexToBytes(obj.iv)}, key, hexToBytes(obj.cipher)); return new TextDecoder().decode(pt); }
+// ----- WEB CRYPTO helpers (Improved with stronger params) -----
+const bytesToHex = (bytes) => Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('');
+const hexToBytes = (hex) => { if (!hex) return new Uint8Array(); const out = new Uint8Array(hex.length / 2); for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16); return out; };
+async function deriveKey(password, saltHex) {
+  const enc = new TextEncoder();
+  const passKey = await crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: hexToBytes(saltHex), iterations: 250000, hash: 'SHA-512' }, passKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  return key;
+}
+async function encryptText(password, plaintext) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, bytesToHex(salt));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
+  return { salt: bytesToHex(salt), iv: bytesToHex(iv), cipher: bytesToHex(ct) };
+}
+async function decryptText(password, obj) {
+  const key = await deriveKey(password, obj.salt);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: hexToBytes(obj.iv) }, key, hexToBytes(obj.cipher));
+  return new TextDecoder().decode(pt);
+}
 
-/* ----- local storage ----- */
-const LOCAL_KEY = 'infinity_wallet_v1';
-function saveLocal(obj){ localStorage.setItem(LOCAL_KEY, JSON.stringify(obj)); }
-function loadLocal(){ const j=localStorage.getItem(LOCAL_KEY); return j?JSON.parse(j):null; }
-function deleteLocal(){ localStorage.removeItem(LOCAL_KEY); }
+// ----- Local storage -----
+const LOCAL_KEY = 'infinity_wallet_v2';  // Updated key for changes
+function saveLocal(obj) { localStorage.setItem(LOCAL_KEY, JSON.stringify(obj)); }
+function loadLocal() { const j = localStorage.getItem(LOCAL_KEY); return j ? JSON.parse(j) : null; }
+function deleteLocal() { localStorage.removeItem(LOCAL_KEY); }
 
-/* ----- Firestore safe write (address only) ----- */
-async function markUserAddress(uid, address){ if(!uid) return; try{ const uref = doc(db,'users',uid); await setDoc(uref, {hasWallet:true, address, updatedAt:serverTimestamp()}, {merge:true}); } catch(e){console.warn(e);} }
+// ----- Firestore safe write (address only, optional) -----
+async function markUserAddress(uid, address) {
+  if (!uid) return;
+  try {
+    const uref = doc(db, 'users', uid);
+    await setDoc(uref, { hasWallet: true, address, updatedAt: serverTimestamp() }, { merge: true });
+  } catch (e) { console.warn('Firestore write failed:', e); }
+}
 
-/* ----- Auth handlers with better errors ----- */
-btnSignUp.addEventListener('click', async ()=>{
+// ----- Auth handlers with improved UX -----
+btnSignUp.addEventListener('click', async () => {
   const email = emailEl.value.trim(), pwd = pwdEl.value;
-  if(!email||!pwd) return alert('Enter email & password (min 6 chars).');
-  try{
+  if (!email || pwd.length < 6) return alert('Enter valid email and password (min 6 chars).');
+  try {
     await createUserWithEmailAndPassword(auth, email, pwd);
-    alert('Account created and signed in.');
-  } catch(e){
-    // helpful messages
-    if(e.code === 'auth/email-already-in-use') {
-      if(confirm('Email already in use. Do you want to try sign-in instead?')) {
-        try { await signInWithEmailAndPassword(auth,email,pwd); } catch(err){ alert('Sign-in failed: ' + err.message); }
-      }
-    } else if(e.code === 'auth/weak-password') alert('Password too weak. Use 6+ characters.');
-    else alert('Signup failed: ' + e.message);
+    alert('Account created successfully.');
+  } catch (e) {
+    let msg = 'Signup failed: ';
+    if (e.code === 'auth/email-already-in-use') msg += 'Email in use. Try signing in?';
+    else if (e.code === 'auth/weak-password') msg += 'Password too weak (min 6 chars).';
+    else if (e.code === 'auth/invalid-email') msg += 'Invalid email format.';
+    else msg += e.message;
+    alert(msg);
   }
 });
 
-btnSignIn.addEventListener('click', async ()=>{
+btnSignIn.addEventListener('click', async () => {
   const email = emailEl.value.trim(), pwd = pwdEl.value;
-  if(!email||!pwd) return alert('Enter email & password.');
-  try{
+  if (!email || !pwd) return alert('Enter email and password.');
+  try {
     await signInWithEmailAndPassword(auth, email, pwd);
-  } catch(e){
-    if(e.code === 'auth/wrong-password') alert('Wrong password. Try again.');
-    else if(e.code === 'auth/user-not-found') alert('No account found. Create an account first.');
-    else alert('Sign-in failed: ' + e.message);
+  } catch (e) {
+    let msg = 'Sign-in failed: ';
+    if (e.code === 'auth/wrong-password') msg += 'Incorrect password.';
+    else if (e.code === 'auth/user-not-found') msg += 'No account found. Sign up first.';
+    else if (e.code === 'auth/invalid-email') msg += 'Invalid email format.';
+    else msg += e.message;
+    alert(msg);
   }
 });
 
-btnSignOut.addEventListener('click', async ()=> { await signOut(auth); location.reload(); });
+btnSignOut.addEventListener('click', async () => { await signOut(auth); location.reload(); });
 
-onAuthStateChanged(auth, async (user)=>{
+onAuthStateChanged(auth, async (user) => {
   state.user = user;
-  if(user){
+  if (user) {
     statusLine.textContent = 'Status: Signed in as ' + (user.email || user.uid);
     document.getElementById('authForm').classList.add('hidden');
     btnSignOut.classList.remove('hidden');
     appDiv.classList.remove('hidden');
     userInfo.textContent = user.email || user.uid;
-    const obj = loadLocal(); storeStatusEl.textContent = obj ? 'encrypted (local)' : 'none';
-    if(obj) document.getElementById('btnUnlock').classList.remove('hidden');
-    // write safe profile
-    try{ const uref = doc(db,'users',user.uid); const existing = await getDoc(uref); await setDoc(uref, { uid:user.uid, email:user.email||null, createdAt: existing && existing.exists() ? existing.data().createdAt || serverTimestamp() : serverTimestamp(), updatedAt: serverTimestamp()}, {merge:true}); } catch(e){ console.warn(e); }
+    const obj = loadLocal();
+    storeStatusEl.textContent = obj ? 'Encrypted locally' : 'None';
+    storeStatusEl.className = obj ? 'small success' : 'small danger';
+    if (obj) btnUnlock.classList.remove('hidden');
+    // Safe profile update
+    try {
+      const uref = doc(db, 'users', user.uid);
+      const existing = await getDoc(uref);
+      await setDoc(uref, {
+        uid: user.uid,
+        email: user.email || null,
+        createdAt: existing.exists() ? existing.data().createdAt || serverTimestamp() : serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    } catch (e) { console.warn('Profile update failed:', e); }
   } else {
     statusLine.textContent = 'Status: Not signed in';
     document.getElementById('authForm').classList.remove('hidden');
@@ -225,17 +285,17 @@ onAuthStateChanged(auth, async (user)=>{
   }
 });
 
-/* ----- Wallet flows ----- */
+// ----- Wallet flows -----
 
-/* show mnemonic modal in numbered grid */
-function showMnemonicModal(phrase){
+// Show mnemonic modal (Phantom-style numbered grid)
+function showMnemonicModal(phrase) {
   state.currentMnemonic = phrase;
   mnGrid.innerHTML = '';
   const words = phrase.trim().split(/\s+/);
-  words.forEach((w,i)=>{
+  words.forEach((w, i) => {
     const cell = document.createElement('div');
     cell.className = 'mn-cell';
-    cell.innerHTML = `<div style="font-size:12px;color:var(--muted)">#${i+1}</div><div style="margin-top:6px">${w}</div>`;
+    cell.innerHTML = `<div class="small muted">#\( {i + 1}</div><div style="margin-top:4px"> \){w}</div>`;
     mnGrid.appendChild(cell);
   });
   confirmSaved.value = '';
@@ -243,144 +303,212 @@ function showMnemonicModal(phrase){
   mnModal.classList.remove('hidden');
 }
 
-/* copy / download */
-copyPhraseBtn.onclick = async ()=>{
-  if(!state.currentMnemonic) return;
-  try { await navigator.clipboard.writeText(state.currentMnemonic); alert('Copied to clipboard'); } catch(e){ alert('Copy failed'); }
+// Copy / Download phrase
+copyPhraseBtn.onclick = async () => {
+  if (!state.currentMnemonic) return;
+  try {
+    await navigator.clipboard.writeText(state.currentMnemonic);
+    alert('Phrase copied to clipboard. Paste securely.');
+  } catch (e) { alert('Copy failed: ' + e.message); }
 };
-downloadPhraseBtn.onclick = ()=>{
-  if(!state.currentMnemonic) return;
-  const blob = new Blob([state.currentMnemonic], {type:'text/plain'});
+downloadPhraseBtn.onclick = () => {
+  if (!state.currentMnemonic) return;
+  const blob = new Blob([state.currentMnemonic], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'infinity-recovery-phrase.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'infinity-recovery-phrase.txt';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 };
-
-/* confirm button -> show local save options */
-confirmSaveBtn.onclick = ()=>{
-  if(confirmSaved.value.trim() !== 'I SAVED') return alert('Type exactly: I SAVED');
+  // Confirm save -> show local options
+confirmSaveBtn.onclick = () => {
+  if (confirmSaved.value.trim() !== 'I HAVE SAVED IT SECURELY') return alert('Type exactly: I HAVE SAVED IT SECURELY');
   mnActions.classList.remove('hidden');
 };
 
-/* save local encrypted */
-saveLocalBtn.onclick = async ()=>{
+// Save local encrypted (min 8 chars now)
+saveLocalBtn.onclick = async () => {
   const pwd = savePwd.value;
-  if(!pwd || pwd.length < 6) return alert('Password min 6 chars');
+  if (!pwd || pwd.length < 8) return alert('Password must be at least 8 characters.');
   try {
     const enc = await encryptText(pwd, state.currentMnemonic);
-    enc.address = state.walletAddress || null;
+    enc.address = state.walletAddress;
     saveLocal(enc);
-    storeStatusEl.textContent = 'encrypted (local)';
+    storeStatusEl.textContent = 'Encrypted locally';
+    storeStatusEl.className = 'small success';
     mnModal.classList.add('hidden');
-    alert('Encrypted mnemonic saved locally.');
-    if(state.user && state.walletAddress) markUserAddress(state.user.uid, state.walletAddress);
-  } catch(e){ alert('Encryption failed: ' + e.message); }
+    alert('Phrase encrypted and saved locally.');
+    if (state.user && state.walletAddress) markUserAddress(state.user.uid, state.walletAddress);
+  } catch (e) { alert('Encryption failed: ' + e.message); }
 };
 
-/* skip saving locally */
-skipSaveBtn.onclick = ()=>{ mnModal.classList.add('hidden'); alert('Wallet created (not saved locally). Keep phrase safe.'); };
+// Skip saving
+skipSaveBtn.onclick = () => {
+  mnModal.classList.add('hidden');
+  alert('Wallet ready (not saved locally). Keep your phrase safe offline.');
+};
 
-/* close modal */
-closeMn.onclick = ()=> mnModal.classList.add('hidden');
+// Close modal
+closeMn.onclick = () => mnModal.classList.add('hidden');
 
-/* create wallet */
-document.getElementById('btnCreate').addEventListener('click', async ()=>{
+// Create wallet
+btnCreate.addEventListener('click', async () => {
   const wallet = ethers.Wallet.createRandom();
   const phrase = wallet.mnemonic.phrase;
   state.walletAddress = wallet.address;
-  // show phrase UI (numbered)
   showMnemonicModal(phrase);
-  // update UI address (but don't auto-save)
   addressEl.textContent = wallet.address;
   sendCard.classList.remove('hidden');
-  explorer.href = '#';
+  updateExplorer();
+  refreshBalance();
 });
 
-/* import wallet */
-document.getElementById('btnImport').addEventListener('click', async ()=>{
-  const phrase = prompt('Paste 12-word phrase:');
-  if(!phrase) return;
+// Import wallet
+btnImport.addEventListener('click', async () => {
+  const phrase = prompt('Paste your 12-word recovery phrase:');
+  if (!phrase) return;
   try {
-    const w = ethers.Wallet.fromMnemonic(phrase);
-    state.walletAddress = w.address;
-    addressEl.textContent = w.address;
+    const wallet = ethers.Wallet.fromMnemonic(phrase);
+    state.walletAddress = wallet.address;
+    addressEl.textContent = wallet.address;
     sendCard.classList.remove('hidden');
-    // ask if want to save locally
-    if(confirm('Do you want to save an encrypted local copy?')) {
-      const pwd = prompt('Set a local encryption password (min 6 chars):');
-      if(!pwd || pwd.length<6) return alert('Password too weak or canceled');
+    updateExplorer();
+    refreshBalance();
+    if (confirm('Save an encrypted local copy?')) {
+      const pwd = prompt('Set encryption password (min 8 chars):');
+      if (!pwd || pwd.length < 8) return alert('Password too weak or canceled.');
       const enc = await encryptText(pwd, phrase);
-      enc.address = w.address;
+      enc.address = wallet.address;
       saveLocal(enc);
-      storeStatusEl.textContent = 'encrypted (local)';
-      if(state.user) markUserAddress(state.user.uid, w.address);
-      alert('Imported & encrypted locally.');
+      storeStatusEl.textContent = 'Encrypted locally';
+      storeStatusEl.className = 'small success';
+      if (state.user) markUserAddress(state.user.uid, wallet.address);
+      alert('Imported and saved locally.');
     } else {
-      alert('Imported wallet (not saved locally).');
+      alert('Imported successfully (not saved locally).');
     }
-  } catch(e){ alert('Import failed: invalid phrase or error: ' + e.message); }
+  } catch (e) { alert('Import failed: Invalid phrase or error - ' + e.message); }
 });
 
-/* unlock local */
-document.getElementById('btnUnlock').addEventListener('click', async ()=>{
+// Unlock local
+btnUnlock.addEventListener('click', async () => {
   const obj = loadLocal();
-  if(!obj) return alert('No local wallet saved');
-  const pwd = prompt('Enter local encryption password:'); if(!pwd) return;
+  if (!obj) return alert('No local wallet found.');
+  const pwd = prompt('Enter your local encryption password:');
+  if (!pwd) return;
   try {
     const phrase = await decryptText(pwd, obj);
-    const w = ethers.Wallet.fromMnemonic(phrase);
-    state.walletAddress = w.address;
-    addressEl.textContent = w.address;
+    const wallet = ethers.Wallet.fromMnemonic(phrase);
+    state.walletAddress = wallet.address;
+    addressEl.textContent = wallet.address;
     sendCard.classList.remove('hidden');
-    alert('Unlocked. Phrase will be shown now — copy & store offline.');
+    updateExplorer();
+    refreshBalance();
+    alert('Unlocked successfully. Phrase shown for verification.');
     showMnemonicModal(phrase);
-  } catch(e){ alert('Decryption failed: ' + e.message); }
+  } catch (e) { alert('Unlock failed: Wrong password or error - ' + e.message); }
 });
-  /* export */
-btnExport.addEventListener('click', async ()=>{
+
+// Export phrase
+btnExport.addEventListener('click', async () => {
   const obj = loadLocal();
-  if(!obj) return alert('No local wallet saved');
-  const pwd = prompt('Enter password to export phrase:'); if(!pwd) return;
+  if (!obj) return alert('No local wallet to export.');
+  const pwd = prompt('Enter password to view phrase:');
+  if (!pwd) return;
   try {
     const phrase = await decryptText(pwd, obj);
     showMnemonicModal(phrase);
-  } catch(e){ alert('Wrong password'); }
+  } catch (e) { alert('Export failed: Wrong password or error - ' + e.message); }
 });
 
-/* delete local */
-btnDeleteLocal.addEventListener('click', ()=>{
-  if(confirm('Delete local encrypted wallet?')){ deleteLocal(); storeStatusEl.textContent='none'; walletClear(); alert('Deleted local copy'); }
+// Delete local
+btnDeleteLocal.addEventListener('click', () => {
+  if (confirm('Delete local encrypted wallet? This cannot be undone.')) {
+    deleteLocal();
+    storeStatusEl.textContent = 'None';
+    storeStatusEl.className = 'small danger';
+    walletClear();
+    alert('Local wallet deleted.');
+  }
 });
 
-/* send tx */
-btnSend.addEventListener('click', async ()=>{
-  const to = toInput.value.trim(), amt = amtInput.value.trim();
-  if(!to||!amt) return alert('Fill recipient & amount');
-  const obj = loadLocal(); if(!obj) return alert('No local wallet saved to sign. Import/create and save locally.');
-  const pwd = prompt('Enter encryption password to sign tx:'); if(!pwd) return;
+// Send TX (with validation and loader)
+btnSend.addEventListener('click', async () => {
+  const to = toInput.value.trim(), amt = parseFloat(amtInput.value.trim());
+  if (!ethers.utils.isAddress(to)) return alert('Invalid recipient address.');
+  if (isNaN(amt) || amt <= 0) return alert('Enter a valid positive amount.');
+  const obj = loadLocal();
+  if (!obj) return alert('No local wallet to sign with. Create/import and save locally.');
+  const pwd = prompt('Enter password to sign transaction:');
+  if (!pwd) return;
   try {
     const phrase = await decryptText(pwd, obj);
     const wallet = ethers.Wallet.fromMnemonic(phrase);
     configureProvider(networkSel.value);
     const signer = wallet.connect(state.provider);
-    txStatus.textContent = 'Sending...';
-    const tx = await signer.sendTransaction({ to, value: ethers.utils.parseEther(amt) });
+    const bal = await state.provider.getBalance(state.walletAddress);
+    const amtWei = ethers.utils.parseEther(amt.toString());
+    if (bal.lt(amtWei)) return alert('Insufficient balance.');
+    // Estimate gas
+    const gasPrice = await state.provider.getGasPrice();
+    const gasLimit = await signer.estimateGas({ to, value: amtWei });
+    const fee = gasPrice.mul(gasLimit);
+    if (bal.lt(amtWei.add(fee))) return alert('Insufficient for gas fees.');
+    txStatus.innerHTML = 'Sending... <div class="loader"></div>';
+    const tx = await signer.sendTransaction({ to, value: amtWei, gasLimit, gasPrice });
     txStatus.textContent = 'Sent: ' + tx.hash;
-    setTimeout(()=> refreshBalance(), 4000);
-  } catch(e){ txStatus.textContent='Error'; alert('Send failed: ' + e.message); }
+    txStatus.className = 'small success';
+    setTimeout(refreshBalance, 5000);
+  } catch (e) {
+    txStatus.textContent = 'Error: ' + (e.message || 'Unknown error');
+    txStatus.className = 'small danger';
+  }
 });
 
-/* provider & balance */
-networkSel.addEventListener('change', ()=>{ configureProvider(networkSel.value); refreshBalance(); updateExplorer(); });
-function configureProvider(net){ state.network = net; const url = RPC_URLS[net]; try { state.provider = url ? new ethers.providers.JsonRpcProvider(url) : ethers.getDefaultProvider(net); } catch(e){ state.provider = ethers.getDefaultProvider(net); } }
-async function refreshBalance(){ if(!state.walletAddress) return; try { const bal = await state.provider.getBalance(state.walletAddress); balanceEl.textContent = ethers.utils.formatEther(bal) + ' ETH'; } catch(e){ balanceEl.textContent='error'; } }
-function updateExplorer(){ const net = state.network; const base = net==='homestead' ? 'https://etherscan.io/address/' : (net==='goerli' ? 'https://goerli.etherscan.io/address/' : 'https://sepolia.etherscan.io/address/'); explorer.href = base + (state.walletAddress || ''); }
-document.getElementById('btnRefresh').addEventListener('click', refreshBalance);
-function walletClear(){ state.walletAddress=null; addressEl.textContent='-'; balanceEl.textContent='-'; sendCard.classList.add('hidden'); explorer.href='#'; }
+// Provider & Balance (with loader)
+networkSel.addEventListener('change', () => { configureProvider(networkSel.value); refreshBalance(); updateExplorer(); });
+function configureProvider(net) {
+  state.network = net;
+  const url = RPC_URLS[net];
+  state.provider = new ethers.providers.JsonRpcProvider(url);
+}
+async function refreshBalance() {
+  if (!state.walletAddress) return;
+  balanceEl.innerHTML = '<div class="loader"></div>';
+  try {
+    const bal = await state.provider.getBalance(state.walletAddress);
+    balanceEl.textContent = ethers.utils.formatEther(bal) + ' ETH';
+  } catch (e) {
+    balanceEl.textContent = 'Error fetching balance';
+    balanceEl.className = 'small danger';
+  }
+}
+function updateExplorer() {
+  const net = state.network;
+  const base = net === 'homestead' ? 'https://etherscan.io/address/' : 'https://sepolia.etherscan.io/address/';
+  explorer.href = base + (state.walletAddress || '');
+}
+btnRefresh.addEventListener('click', refreshBalance);
+function walletClear() {
+  state.walletAddress = null;
+  addressEl.textContent = '-';
+  balanceEl.textContent = '-';
+  sendCard.classList.add('hidden');
+  explorer.href = '#';
+}
 
-/* init on load */
-window.addEventListener('load', ()=>{ const obj = loadLocal(); storeStatusEl.textContent = obj ? 'encrypted (local)' : 'none'; if(obj) document.getElementById('btnUnlock').classList.remove('hidden'); configureProvider(networkSel.value); });
-
+// Init on load
+window.addEventListener('load', () => {
+  const obj = loadLocal();
+  storeStatusEl.textContent = obj ? 'Encrypted locally' : 'None';
+  storeStatusEl.className = obj ? 'small success' : 'small danger';
+  if (obj) btnUnlock.classList.remove('hidden');
+  configureProvider(networkSel.value);
+  updateExplorer();
+});
 </script>
 </body>
 </html>
-  
