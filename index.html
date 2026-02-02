@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Infinity ♾ Wallet — Real Single File</title>
+<title>Infinity ♾ Wallet — Fixed Single File</title>
 
 <!-- Fonts / libs -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -110,6 +110,7 @@ button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);colo
                 <div id="nativeBalance" class="big">-</div>
                 <div id="usdBalance" class="muted">-</div>
               </div>
+              <div style="margin-top:8px"><a id="explorerLink" href="#" target="_blank" class="small muted">View on explorer</a></div>
             </div>
           </div>
 
@@ -264,7 +265,7 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 ----------------------------*/
 const $ = id => document.getElementById(id);
 function toast(msg, t=2200){ const el=$('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none', t); }
-function hexToBytes(hex){ if(!hex) return new Uint8Array(); const out=new Uint8Array(hex.length/2); for(let i=0;i<out.length;i++) out[i]=parseInt(hex.substr(i*2,2),16); return out; }
+function hexToBytes(hex){ if(!hex) return new Uint8Array(); const out=new Uint8Array(Math.ceil(hex.length/2)); for(let i=0;i<out.length;i++) out[i]=parseInt(hex.substr(i*2,2),16); return out; }
 function bytesToHex(bytes){ return Array.from(new Uint8Array(bytes)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 
 /* ---------------------------
@@ -351,92 +352,7 @@ onAuthStateChanged(auth, user=>{
   elems.userEmail.textContent = user ? user.email : '-';
   $('btnSignOut').classList.toggle('hidden', !user);
 });
-        /* ---------------------------
-  Wallet creation / import / encrypt local
-----------------------------*/
-function createWallet(){
-  const w = window.ethers.Wallet.createRandom();
-  return { mnemonic:w.mnemonic.phrase, address:w.address, privateKey:w.privateKey };
-}
-function walletFromMnemonic(mn){ const w=window.ethers.Wallet.fromMnemonic(mn); return { mnemonic:mn, address:w.address, privateKey:w.privateKey }; }
-
-$('btnCreate').onclick = async ()=> {
-  const w = createWallet();
-  state.mnemonic = w.mnemonic; state.wallet = window.ethers.Wallet.fromMnemonic(w.mnemonic);
-  showWallet();
-  alert('Mnemonic (save offline):\n\n' + w.mnemonic);
-  toast('Wallet created. Save mnemonic offline.');
-  await updateBalances();
-};
-$('btnImport').onclick = async ()=> {
-  const ph = prompt('Paste 12-word phrase:');
-  if(!ph) return; try{ const w=walletFromMnemonic(ph); state.mnemonic=ph; state.wallet=window.ethers.Wallet.fromMnemonic(ph); showWallet(); toast('Imported'); await updateBalances(); } catch(e){ console.error(e); toast('Invalid phrase'); }
-};
-
-$('btnSaveLocal').onclick = async ()=> {
-  if(!state.mnemonic) return toast('No mnemonic');
-  const pwd = prompt('Choose local password (will encrypt mnemonic)');
-  if(!pwd) return;
-  try{ const enc = await encryptMnemonic(pwd, state.mnemonic); saveLocalObj(enc); toast('Saved encrypted locally'); } catch(e){ console.error(e); toast('Save failed'); }
-};
-
-$('btnUnlockLocal').onclick = async ()=> {
-  const local = loadLocalObj(); if(!local) return toast('No saved local');
-  const pwd = prompt('Local password'); if(!pwd) return;
-  try{ const phrase = await decryptMnemonic(pwd, local); state.mnemonic=phrase; state.wallet=window.ethers.Wallet.fromMnemonic(phrase); showWallet(); toast('Unlocked'); await updateBalances(); } catch(e){ console.error(e); toast('Decrypt failed'); }
-};
-
-$('btnExportPhrase').onclick = ()=> { if(!state.mnemonic) return toast('No wallet'); if(confirm('Show mnemonic? Keep private. Continue?')) alert(state.mnemonic); };
-$('btnDeleteLocal').onclick = ()=> { removeLocal(); toast('Local deleted'); };
-
-/* ---------------------------
-  Show wallet UI helper + QR
-----------------------------*/
-function showWallet(){
-  if(!state.wallet) return;
-  $('walletAddr').textContent = state.wallet.address;
-  $('sideAddr').textContent = state.wallet.address;
-  $('signedEmail').textContent = state.user ? state.user.email : '-';
-  $('qrcode').innerHTML=''; new QRCode($('qrcode'), { text: state.wallet.address, width:140, height:140 });
-  $('sideQR').innerHTML=''; new QRCode($('sideQR'), { text: state.wallet.address, width:120, height:120 });
-  updateExplorerLink();
-}
-
-/* ---------------------------
-  Provider / balances
-----------------------------*/
-function getProvider(chain = state.chain){
-  return new window.ethers.providers.JsonRpcProvider(getRpc(chain));
-}
-async function fetchNativeBalance(address, chain=state.chain){
-  const provider = getProvider(chain);
-  const raw = await provider.getBalance(address);
-  return Number(window.ethers.utils.formatEther(raw));
-}
-
-/* ---------------------------
-  Price feeds: Binance public + fallback CoinGecko
-----------------------------*/
-async function fetchBinancePrice(symbolPair){
-  // symbolPair like 'ETHUSDT'
-  try{
-    const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbolPair}`);
-    if(!r.ok) throw new Error('no binance');
-    const j = await r.json();
-    return Number(j.price);
-  }catch(e){ console.warn('Binance price error', symbolPair, e); return null; }
-}
-async function fetchCGPrice(coinId='ethereum'){
-  try{ const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`); const j=await r.json(); return j[coinId]?.usd||null; } catch(e){ console.warn('cg err', e); return null; }
-}
-async function updatePrices(){
-  const eth = await fetchBinancePrice('ETHUSDT') || await fetchCGPrice('ethereum');
-  const bnb = await fetchBinancePrice('BNBUSDT') || await fetchCGPrice('binancecoin');
-  $('priceETH').textContent = eth ? '$' + Number(eth).toFixed(2) : '-';
-  $('priceBNB').textContent = bnb ? '$' + Number(bnb).toFixed(2) : '-';
-}
-
-/* ---------------------------
+  ------------------------
   Tokens: add, fetch metadata (CoinGecko contract endpoint)
 ----------------------------*/
 const ERC20_ABI = ["function balanceOf(address) view returns (uint256)","function decimals() view returns (uint8)","function symbol() view returns (string)"];
@@ -447,7 +363,6 @@ async function getTokenInfo(chain, contractAddr){
     const provider = getProvider(chain);
     const c = new window.ethers.Contract(contractAddr, ERC20_ABI, provider);
     const [symbol, decimals] = await Promise.all([c.symbol(), c.decimals()]);
-    // try fetch logo via CoinGecko contract endpoint (ethereum)
     let logo=null;
     try{
       const cgChain = chain==='ethereum'?'ethereum': chain==='polygon'?'polygon-pos': chain==='bsc'?'binance-smart-chain':'ethereum';
@@ -471,6 +386,8 @@ $('btnAddToken').onclick = async ()=>{
   if(!addr) return toast('Enter token contract');
   try{
     const info = await getTokenInfo(state.chain, addr);
+    // avoid duplicates
+    if(state.tokens.find(t=>t.address.toLowerCase()===info.address.toLowerCase())) return toast('Token already added');
     state.tokens.push(info);
     renderTokens();
     $('tokenAddr').value = '';
@@ -485,11 +402,11 @@ function renderTokens(){
   if(!state.tokens.length){ target.textContent = 'No tokens added'; return; }
   for(const t of state.tokens){
     const div = document.createElement('div'); div.className='token';
-    const left = document.createElement('div');
+    const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center';
     if(t.logo) { const img = document.createElement('img'); img.src=t.logo; img.className='logoToken'; left.appendChild(img); }
     const info = document.createElement('div'); info.innerHTML = `<div><strong>${t.symbol}</strong></div><div class="muted small">${t.address}</div>`;
     left.appendChild(info);
-    const right = document.createElement('div'); right.id = `tokbal_${t.address.slice(2,10)}`; right.className='small muted'; right.textContent='-';
+    const right = document.createElement('div'); right.id = `tokbal_${t.address.slice(2,10)}_${t.symbol}`; right.className='small muted'; right.textContent='-';
     div.appendChild(left); div.appendChild(right);
     target.appendChild(div);
   }
@@ -501,7 +418,7 @@ async function updateTokenBalances(){
   for(const t of state.tokens){
     try{
       const b = await getTokenBalance(state.chain, t.address, state.wallet.address);
-      const el = document.querySelector(`#tokbal_${t.address.slice(2,10)}`);
+      const el = document.querySelector(`#tokbal_${t.address.slice(2,10)}_${t.symbol}`);
       if(el) el.textContent = `${b.balance} ${t.symbol}`;
     }catch(e){ console.warn('token bal', e); }
   }
@@ -612,8 +529,8 @@ $('btnSearch').onclick = async ()=>{
       try{
         const r2 = await fetch(`https://api.coingecko.com/api/v3/coins/${cgId}`);
         const d = await r2.json();
-        // try find ethereum contract
-        const contract = d?.contract_address || (d?.platforms ? d.platforms.ethereum : null) || null;
+        // try find ethereum contract or other platforms
+        const contract = d?.contract_address || (d?.platforms ? (d.platforms.ethereum || d.platforms['binance-smart-chain'] || d.platforms.polygon) : null) || null;
         if(!contract){ alert('No contract address found in Coingecko entry. Use manual contract address.'); return; }
         $('tokenAddr').value = contract;
         toast('Token contract filled from Coingecko. Click Add.');
@@ -621,6 +538,7 @@ $('btnSearch').onclick = async ()=>{
     };
   }catch(e){ console.error(e); toast('Search failed'); }
 };
+
   /* ---------------------------
   Create ERC-20 solidity template
 ----------------------------*/
@@ -628,16 +546,7 @@ $('btnGenerate').onclick = ()=>{
   const name = $('newName').value.trim() || 'MyToken';
   const sym = $('newSymbol').value.trim() || 'MTK';
   const supply = $('newSupply').value.trim() || '1000000';
-  const code = `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-contract ${name.replace(/\W/g,'')} is ERC20 {
-  constructor() ERC20("${name}","${sym}") {
-    _mint(msg.sender, ${supply} * (10 ** 18));
-  }
-}
-// Deploy with Remix or Hardhat, pay gas on chosen network.
-`;
+  const code = `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\nimport "@openzeppelin/contracts/token/ERC20/ERC20.sol";\ncontract ${name.replace(/\W/g,'')} is ERC20 {\n  constructor() ERC20("${name}","${sym}") {\n    _mint(msg.sender, ${supply} * (10 ** 18));\n  }\n}\n// Deploy with Remix or Hardhat, pay gas on chosen network.\n`;
   $('solCode').textContent = code;
 };
 $('btnCopyCode').onclick = ()=>{ navigator.clipboard.writeText($('solCode').textContent); toast('Copied solidity code'); };
@@ -662,15 +571,7 @@ $('chainSelect').onchange = ()=>{ state.chain = $('chainSelect').value; updateEx
 /* ---------------------------
   Explorer link
 ----------------------------*/
-function updateExplorerLink(){ if(!state.wallet) return; const url = getExplorer(state.chain) + state.wallet.address; $('explorerLink').href = url; }
-
-/* ---------------------------
-  Helpers for Binance/Coingecko price used earlier
-----------------------------*/
-async function fetchBinancePrice(symbolPair){
-  try{ const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbolPair}`); if(!r.ok) throw new Error('binance fail'); const j = await r.json(); return Number(j.price); } catch(e){ return null; }
-}
-async function fetchCGPrice(id){ try{ const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`); const j=await r.json(); return j[id]?.usd||null; }catch(e){return null;} }
+function updateExplorerLink(){ if(!state.wallet) return; const url = getExplorer(state.chain) + state.wallet.address; if(elems.explorerLink) elems.explorerLink.href = url; }
 
 /* ---------------------------
   Boot sequence
@@ -678,7 +579,7 @@ async function fetchCGPrice(id){ try{ const r = await fetch(`https://api.coingec
 (async function init(){
   // try load local encrypted presence and show indicator
   const local = loadLocalObj();
-  if(local) { /* could show indicator */ }
+  if(local) { /* could show indicator for saved local wallet */ }
   // update prices every 15s
   updatePrices(); setInterval(updatePrices, 15000);
   // try to restore state if local unlocked via prompt? (we leave for user to unlock)
