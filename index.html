@@ -30,7 +30,6 @@ button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);colo
 .muted{color:var(--muted)}
 .addr{word-break:break-all;font-weight:700;margin-top:8px}
 .big{font-size:20px;font-weight:800;margin-top:6px}
-.token{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:10px;background:rgba(0,0,0,0.14);margin-bottom:8px}
 .small{font-size:13px}
 .hidden{display:none}
 #qrcode{margin-top:8px}
@@ -40,10 +39,6 @@ button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);colo
 .activeNav{background:linear-gradient(90deg,var(--accent),#06b6d4);color:#001;border:none}
 .section{display:none}
 .section.active{display:block}
-.search{display:flex;gap:8px;margin-top:8px}
-.logoToken{width:32px;height:32px;border-radius:8px;margin-right:8px;object-fit:cover}
-.solcode{background:#07121a;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);max-height:260px;overflow:auto;font-family:monospace;font-size:12px;color:#cfe}
-.copyBtn{background:#111834;color:var(--text);padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
 </style>
 </head>
 <body>
@@ -54,7 +49,7 @@ button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);colo
       <div class="logo">♾</div>
       <div>
         <div class="title">Infinity ♾ Wallet</div>
-        <div class="subtitle">Non-custodial • Real chain data (Alchemy + Binance + CoinGecko)</div>
+        <div class="subtitle">Non-custodial • Ethereum Only</div>
       </div>
     </div>
     <div style="text-align:right">
@@ -65,10 +60,8 @@ button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);colo
 
   <div class="nav">
     <button id="navWallet" class="activeNav">Wallet</button>
-    <button id="navTokens">Tokens</button>
     <button id="navSend">Send</button>
-    <button id="navHistory">History</button>
-    <button id="navCreate">Create Token</button>
+    <button id="navReceive">Receive</button>
   </div>
 
   <div class="layout">
@@ -96,108 +89,48 @@ button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);colo
         <div class="row" style="margin-top:8px">
           <button id="btnCreate">Create Wallet</button>
           <button id="btnImport" class="ghost">Import</button>
-          <button id="btnSaveLocal" class="ghost">Save Locally</button>
-          <button id="btnUnlockLocal" class="ghost">Unlock Local</button>
+          <button id="btnSaveLocal" class="ghost hidden">Save Locally</button>
+          <button id="btnUnlockLocal" class="ghost hidden">Unlock Local</button>
         </div>
 
-        <div style="display:flex;gap:18px;margin-top:12px;align-items:flex-start;flex-wrap:wrap">
-          <div style="flex:1;min-width:260px">
-            <div class="card">
-              <div>Address</div>
-              <div id="walletAddr" class="addr">-</div>
-              <div id="qrcode"></div>
-              <div style="margin-top:12px">
-                <div id="nativeBalance" class="big">-</div>
-                <div id="usdBalance" class="muted">-</div>
-              </div>
-              <div style="margin-top:8px"><a id="explorerLink" href="#" target="_blank" class="small muted">View on explorer</a></div>
+        <div style="margin-top:12px">
+          <div class="card">
+            <div>Address</div>
+            <div id="walletAddr" class="addr">-</div>
+            <div style="margin-top:12px">
+              <div id="nativeBalance" class="big">-</div>
+              <div id="usdBalance" class="muted">-</div>
             </div>
-          </div>
-
-          <div style="width:320px;min-width:260px">
-            <div class="card">
-              <h4>Quick actions</h4>
-              <div style="margin-top:8px" class="row">
-                <button id="btnExportPhrase" class="ghost">Export Phrase</button>
-                <button id="btnDeleteLocal" class="ghost">Delete Local</button>
-              </div>
-              <div style="margin-top:12px" class="small muted">Chain:
-                <select id="chainSelect">
-                  <option value="ethereum">Ethereum</option>
-                  <option value="bsc">BNB Chain</option>
-                  <option value="polygon">Polygon</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="card" style="margin-top:12px">
-              <h4>Search / Browse tokens</h4>
-              <div class="search">
-                <input id="searchToken" placeholder="Search token name or symbol" />
-                <button id="btnSearch" class="ghost">Search</button>
-              </div>
-              <div id="searchResults" style="margin-top:10px" class="muted small">Search results show token name, symbol and add button</div>
-            </div>
+            <div style="margin-top:8px"><a id="explorerLink" href="#" target="_blank" class="small muted">View on explorer</a></div>
           </div>
         </div>
-      </div>
-
-      <!-- TOKENS section -->
-      <div id="sectionTokens" class="card section">
-        <h3>Tokens</h3>
-        <div style="margin-top:8px">
-          <label>Add ERC20 by contract</label>
-          <div class="row" style="margin-top:6px">
-            <input id="tokenAddr" placeholder="0x..." />
-            <button id="btnAddToken" class="ghost">Add</button>
-          </div>
+        <div class="row" style="margin-top:12px">
+          <button id="btnExportPhrase" class="ghost hidden">Export Phrase</button>
+          <button id="btnDeleteLocal" class="ghost hidden">Delete Local</button>
         </div>
-        <div id="tokensList" style="margin-top:12px" class="muted">No tokens added</div>
       </div>
 
       <!-- SEND section -->
       <div id="sectionSend" class="card section">
-        <h3>Send</h3>
+        <h3>Send ETH</h3>
         <div style="margin-top:8px">
           <label>Recipient</label>
           <input id="sendTo" placeholder="0x..."/>
-          <label style="margin-top:8px">Amount (native)</label>
+          <label style="margin-top:8px">Amount (ETH)</label>
           <div class="row">
             <input id="sendAmount" placeholder="0.01"/>
             <button id="btnSend" class="ghost">Send</button>
           </div>
-          <div style="margin-top:12px">
-            <label>Send ERC-20 token</label>
-            <div class="row" style="margin-top:6px">
-              <select id="sendTokenSelect"></select>
-              <input id="sendTokenAmount" placeholder="Amount"/>
-              <button id="btnSendToken" class="ghost">Send Token</button>
-            </div>
-          </div>
         </div>
       </div>
 
-      <!-- HISTORY -->
-      <div id="sectionHistory" class="card section">
-        <h3>History</h3>
-        <div id="historyList" class="muted small">Loading history requires Alchemy RPC (included).</div>
-        <div style="margin-top:10px"><button id="btnLoadHistory" class="ghost">Load recent txs</button></div>
-      </div>
-
-      <!-- CREATE TOKEN -->
-      <div id="sectionCreate" class="card section">
-        <h3>Create ERC-20 token (deploy externally)</h3>
-        <div class="muted small">This will generate a standard ERC-20 token contract you can copy/paste into Remix or deploy via your wallet.</div>
-        <div style="margin-top:12px">
-          <label>Token name</label><input id="newName" placeholder="MyToken"/>
-          <label style="margin-top:8px">Symbol</label><input id="newSymbol" placeholder="MTK"/>
-          <label style="margin-top:8px">Total supply (wei)</label><input id="newSupply" placeholder="1000000"/>
-          <div style="margin-top:10px" class="row">
-            <button id="btnGenerate">Generate Code</button>
-            <button id="btnCopyCode" class="copyBtn">Copy</button>
-          </div>
-          <pre id="solCode" class="solcode" style="margin-top:8px">Generated solidity will appear here</pre>
-        </div>
+      <!-- RECEIVE section -->
+      <div id="sectionReceive" class="card section">
+        <h3>Receive</h3>
+        <div class="small">Address</div>
+        <div id="receiveAddr" class="addr">-</div>
+        <div id="qrcode"></div>
+        <button id="btnCopyAddr" class="ghost" style="margin-top:10px">Copy Address</button>
       </div>
     </div>
 
@@ -208,54 +141,59 @@ button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);colo
         <div id="signedEmail">-</div>
         <div style="margin-top:8px" class="muted small">Wallet address</div>
         <div id="sideAddr" class="addr">-</div>
-        <div id="sideQR" style="margin-top:8px"></div>
       </div>
 
       <div class="card" style="margin-top:12px">
-        <h4>Price feed (live)</h4>
-        <div class="row" style="margin-top:8px">
-          <div>
-            <div class="small muted">ETH</div>
-            <div id="priceETH" class="big">-</div>
-          </div>
-          <div style="margin-left:12px">
-            <div class="small muted">BNB</div>
-            <div id="priceBNB" class="big">-</div>
-          </div>
+        <h4>ETH Price (live)</h4>
+        <div style="margin-top:8px">
+          <div id="priceETH" class="big">-</div>
         </div>
-        <div style="margin-top:8px" class="muted small">Prices primarily from Binance public API; fallback CoinGecko.</div>
-      </div>
-
-      <div class="card" style="margin-top:12px">
-        <h4>Quick tokens</h4>
-        <div id="quickTokens" class="muted small">Add tokens you often use.</div>
+        <div style="margin-top:8px" class="muted small">From CoinGecko</div>
       </div>
     </aside>
+          </div>
+          <div id="toast" class="toast"></div>
+
+  <!-- Mnemonic Modal -->
+  <div id="mnModal" class="modal hidden">
+    <div class="modal-card">
+      <h3 style="color:var(--accent)">Your Recovery Phrase</h3>
+      <div class="small danger">WARNING: Shown ONLY ONCE. Write down offline. Do not share or screenshot. Losing this loses your wallet.</div>
+      <div id="mnGrid" class="mn-grid"></div>
+      <div style="margin-top:12px" class="row">
+        <button id="copyPhrase">Copy</button>
+        <button class="ghost" id="downloadPhrase">Download TXT</button>
+      </div>
+      <div style="margin-top:12px">
+        <input id="confirmSaved" placeholder='Type "I HAVE SAVED IT SECURELY" to continue' />
+      </div>
+      <div style="margin-top:12px" class="row">
+        <button id="confirmSaveBtn">Confirm</button>
+      </div>
+      <div style="margin-top:12px" class="small muted">Then encrypt locally or skip.</div>
+      <div style="margin-top:12px" id="mnActions" class="row hidden">
+        <input id="savePwd" type="password" placeholder="Encryption password (min 8 chars)" />
+        <button id="saveLocalBtn">Save Locally</button>
+        <button class="ghost" id="skipSaveBtn">Skip</button>
+      </div>
+      <div style="margin-top:12px;text-align:right"><button class="ghost" id="closeMn">Close</button></div>
+    </div>
   </div>
 
-  <div id="toast" class="toast"></div>
 </div>
 
-<!-- Firebase SDK + main app JS -->
 <script type="module">
 /* ---------------------------
-  CONFIG (You provided keys)
-  NOTE: For production move secrets to serverless env and restrict.
+  CONFIG
 ----------------------------*/
 const CONFIG = {
-  ALCHEMY_KEY: 'IIQYszXsyI0Jdh1E-5mVsTRbGONI9jgj',
-  FIREBASE: {
-    apiKey: "AIzaSyBtbgeSVEwHGs50sHRe9GBle4xonalhIL0",
-    authDomain: "anontalk-pfvvb.firebaseapp.com",
-    projectId: "anontalk-pfvvb",
-    storageBucket: "anontalk-pfvvb.firebasestorage.app",
-    messagingSenderId: "600500129969",
-    appId: "1:600500129969:web:f19c1c0b3603a44a00d290"
-  }
+  RPC: 'https://rpc.ankr.com/eth', // Free public RPC for Ethereum
+  EXPLORER: 'https://etherscan.io/address/',
+  CG_ID: 'ethereum'
 };
 
 /* ---------------------------
-  IMPORT FIREBASE (modular)
+  IMPORT FIREBASE
 ----------------------------*/
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
@@ -265,11 +203,11 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 ----------------------------*/
 const $ = id => document.getElementById(id);
 function toast(msg, t=2200){ const el=$('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none', t); }
-function hexToBytes(hex){ if(!hex) return new Uint8Array(); const out=new Uint8Array(Math.ceil(hex.length/2)); for(let i=0;i<out.length;i++) out[i]=parseInt(hex.substr(i*2,2),16); return out; }
+function hexToBytes(hex){ const out=new Uint8Array(Math.ceil(hex.length/2)); for(let i=0;i<out.length;i++) out[i]=parseInt(hex.substr(i*2,2),16); return out; }
 function bytesToHex(bytes){ return Array.from(new Uint8Array(bytes)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 
 /* ---------------------------
-  ENCRYPT/DECRYPT mnemonic (PBKDF2 + AES-GCM)
+  ENCRYPT/DECRYPT
 ----------------------------*/
 async function deriveKey(password, saltHex){
   const enc = new TextEncoder();
@@ -292,7 +230,7 @@ async function decryptMnemonic(password, obj){
 }
 
 /* ---------------------------
-  Local storage helpers
+  Local storage
 ----------------------------*/
 const LOCAL_KEY = 'infinity_wallet_v1';
 function saveLocalObj(obj){ localStorage.setItem(LOCAL_KEY, JSON.stringify(obj)); }
@@ -300,295 +238,225 @@ function loadLocalObj(){ const j=localStorage.getItem(LOCAL_KEY); return j?JSON.
 function removeLocal(){ localStorage.removeItem(LOCAL_KEY); }
 
 /* ---------------------------
-  Chain config (Alchemy + public RPCs)
-----------------------------*/
-const RPC = {
-  ethereum: `https://eth-mainnet.g.alchemy.com/v2/${CONFIG.ALCHEMY_KEY}`,
-  polygon: `https://polygon-mainnet.g.alchemy.com/v2/${CONFIG.ALCHEMY_KEY}`,
-  bsc: 'https://bsc-dataseed.binance.org'
-};
-const EXPLORER = { ethereum:'https://etherscan.io/address/', polygon:'https://polygonscan.com/address/', bsc:'https://bscscan.com/address/' };
-const CG_IDS = { ethereum:'ethereum', polygon:'polygon-pos', bsc:'binancecoin' };
-function getRpc(chain='ethereum'){ return RPC[chain]||RPC.ethereum; }
-function getExplorer(chain='ethereum'){ return EXPLORER[chain]||EXPLORER.ethereum; }
-
-/* ---------------------------
   Firebase init
 ----------------------------*/
 const fbApp = initializeApp(CONFIG.FIREBASE);
-const auth = getAuth ? getAuth(fbApp) : null; // modular import above
+const auth = getAuth(fbApp);
 
 /* ---------------------------
-  UI elements / state
+  State
 ----------------------------*/
-const state = { user:null, wallet:null, mnemonic:null, chain:'ethereum', tokens:[] };
+const state = { user:null, wallet:null, mnemonic:null };
 const elems = {
-  email:$('email'), password:$('password'), statusText:$('statusText'), userEmail:$('userEmail'),
-  signedEmail:$('signedEmail'), walletAddr:$('walletAddr'), qrcode:$('qrcode'), sideAddr:$('sideAddr'), sideQR:$('sideQR'),
-  nativeBalance:$('nativeBalance'), usdBalance:$('usdBalance'), chainSelect:$('chainSelect'),
-  tokenAddr:$('tokenAddr'), tokensList:$('tokensList'), sendTokenSelect:$('sendTokenSelect'),
-  priceETH:$('priceETH'), priceBNB:$('priceBNB'), historyList:$('historyList'), explorerLink:$('explorerLink'),
-  searchToken:$('searchToken'), searchResults:$('searchResults'), quickTokens:$('quickTokens')
+  email:\( ('email'), password: \)('password'), statusText:\( ('statusText'), userEmail: \)('userEmail'),
+  walletAddr:\( ('walletAddr'), nativeBalance: \)('nativeBalance'), usdBalance:$('usdBalance'),
+  receiveAddr:\( ('receiveAddr'), qrcode: \)('qrcode'), sendTo:\( ('sendTo'), sendAmount: \)('sendAmount'),
+  signedEmail:\( ('signedEmail'), sideAddr: \)('sideAddr'), priceETH:$('priceETH')
 };
 
 /* ---------------------------
-  Authentication handlers
+  Auth
 ----------------------------*/
 $('btnSignUp').onclick = async ()=> {
-  try{ await createUserWithEmailAndPassword(auth, elems.email.value, elems.password.value); toast('Account created'); } catch(e){ console.error(e); toast(e.message||e); }
+  try{ await createUserWithEmailAndPassword(auth, elems.email.value, elems.password.value); toast('Created'); } catch(e){ toast(e.message); }
 };
 $('btnSignIn').onclick = async ()=> {
-  try{ await signInWithEmailAndPassword(auth, elems.email.value, elems.password.value); toast('Signed in'); } catch(e){ console.error(e); toast(e.message||e); }
+  try{ await signInWithEmailAndPassword(auth, elems.email.value, elems.password.value); toast('Signed in'); } catch(e){ toast(e.message); }
 };
-$('btnSignOut').onclick = async ()=> {
-  try{ await signOut(auth); location.reload(); } catch(e){ console.error(e); }
-};
+$('btnSignOut').onclick = async ()=> { await signOut(auth); location.reload(); };
 $('btnForgot').onclick = async ()=> {
-  try{ await sendPasswordResetEmail(auth, elems.email.value); toast('Reset email sent'); } catch(e){ console.error(e); toast('Reset failed'); }
+  try{ await sendPasswordResetEmail(auth, elems.email.value); toast('Reset sent'); } catch(e){ toast('Reset failed'); }
 };
 onAuthStateChanged(auth, user=>{
   state.user = user;
-  elems.statusText.textContent = user ? 'Status: Signed in' : 'Status: Not signed in';
+  elems.statusText.textContent = user ? 'Signed in' : 'Not signed in';
   elems.userEmail.textContent = user ? user.email : '-';
+  elems.signedEmail.textContent = user ? user.email : '-';
   $('btnSignOut').classList.toggle('hidden', !user);
+  $('btnSaveLocal').classList.toggle('hidden', !user || !state.mnemonic);
+  $('btnUnlockLocal').classList.toggle('hidden', !loadLocalObj());
+  $('btnExportPhrase').classList.toggle('hidden', !state.wallet);
+  $('btnDeleteLocal').classList.toggle('hidden', !loadLocalObj());
+  if(user) updateBalances();
 });
-  ------------------------
-  Tokens: add, fetch metadata (CoinGecko contract endpoint)
+
+/* ---------------------------
+  Wallet
 ----------------------------*/
-const ERC20_ABI = ["function balanceOf(address) view returns (uint256)","function decimals() view returns (uint8)","function symbol() view returns (string)"];
-
-async function getTokenInfo(chain, contractAddr){
-  // returns {address, symbol, decimals, logo}
+$('btnCreate').onclick = ()=>{
+  const wallet = ethers.Wallet.createRandom();
+  state.wallet = wallet;
+  state.mnemonic = wallet.mnemonic.phrase;
+  showMnemonicModal(state.mnemonic);
+  updateWalletUI(wallet.address);
+  updateBalances();
+  toast('Wallet created');
+};
+$('btnImport').onclick = ()=>{
+  const phrase = prompt('Paste 12-word phrase');
+  if(!phrase) return;
   try{
-    const provider = getProvider(chain);
-    const c = new window.ethers.Contract(contractAddr, ERC20_ABI, provider);
-    const [symbol, decimals] = await Promise.all([c.symbol(), c.decimals()]);
-    let logo=null;
-    try{
-      const cgChain = chain==='ethereum'?'ethereum': chain==='polygon'?'polygon-pos': chain==='bsc'?'binance-smart-chain':'ethereum';
-      const r = await fetch(`https://api.coingecko.com/api/v3/coins/${cgChain}/contract/${contractAddr}`);
-      if(r.ok){ const j = await r.json(); logo = j.image?.small || j.image?.thumb || null; }
-    }catch(e){ console.warn('cg logo err', e); }
-    return { address: contractAddr, symbol, decimals, logo };
-  }catch(e){ throw e; }
-}
-
-async function getTokenBalance(chain, contractAddr, walletAddress){
-  const provider = getProvider(chain);
-  const c = new window.ethers.Contract(contractAddr, ERC20_ABI, provider);
-  const [raw, decimals] = await Promise.all([c.balanceOf(walletAddress), c.decimals()]);
-  const human = Number(window.ethers.utils.formatUnits(raw, decimals));
-  return { balance: human, decimals };
-}
-
-$('btnAddToken').onclick = async ()=>{
-  const addr = $('tokenAddr').value.trim();
-  if(!addr) return toast('Enter token contract');
+    const wallet = ethers.Wallet.fromMnemonic(phrase);
+    state.wallet = wallet;
+    state.mnemonic = phrase;
+    updateWalletUI(wallet.address);
+    updateBalances();
+    toast('Imported');
+  }catch(e){ toast('Invalid phrase'); }
+};
+$('btnUnlockLocal').onclick = async ()=>{
+  const obj = loadLocalObj();
+  if(!obj) return toast('No local wallet');
+  const pwd = prompt('Password');
+  if(!pwd) return;
   try{
-    const info = await getTokenInfo(state.chain, addr);
-    // avoid duplicates
-    if(state.tokens.find(t=>t.address.toLowerCase()===info.address.toLowerCase())) return toast('Token already added');
-    state.tokens.push(info);
-    renderTokens();
-    $('tokenAddr').value = '';
-    toast('Token added: ' + info.symbol);
-    await updateTokenBalances();
-  }catch(e){ console.error(e); toast('Token error'); }
+    const phrase = await decryptMnemonic(pwd, obj);
+    const wallet = ethers.Wallet.fromMnemonic(phrase);
+    state.wallet = wallet;
+    state.mnemonic = phrase;
+    updateWalletUI(wallet.address);
+    updateBalances();
+    toast('Unlocked');
+  }catch(e){ toast('Wrong password'); }
+};
+$('btnSaveLocal').onclick = async ()=>{
+  const pwd = prompt('Set password (min 8 chars)');
+  if(!pwd || pwd.length < 8) return toast('Invalid password');
+  try{
+    const enc = await encryptMnemonic(pwd, state.mnemonic);
+    saveLocalObj(enc);
+    toast('Saved locally');
+  }catch(e){ toast('Save failed'); }
+};
+$('btnExportPhrase').onclick = ()=>{
+  showMnemonicModal(state.mnemonic);
+};
+$('btnDeleteLocal').onclick = ()=>{
+  if(confirm('Delete local?')){ removeLocal(); toast('Deleted'); location.reload(); }
+};
+$('btnCopyAddr').onclick = async ()=>{
+  if(!state.wallet) return toast('No wallet');
+  await navigator.clipboard.writeText(state.wallet.address);
+  toast('Address copied');
 };
 
-function renderTokens(){
-  const target = $('tokensList');
-  target.innerHTML = '';
-  if(!state.tokens.length){ target.textContent = 'No tokens added'; return; }
-  for(const t of state.tokens){
-    const div = document.createElement('div'); div.className='token';
-    const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center';
-    if(t.logo) { const img = document.createElement('img'); img.src=t.logo; img.className='logoToken'; left.appendChild(img); }
-    const info = document.createElement('div'); info.innerHTML = `<div><strong>${t.symbol}</strong></div><div class="muted small">${t.address}</div>`;
-    left.appendChild(info);
-    const right = document.createElement('div'); right.id = `tokbal_${t.address.slice(2,10)}_${t.symbol}`; right.className='small muted'; right.textContent='-';
-    div.appendChild(left); div.appendChild(right);
-    target.appendChild(div);
-  }
-  populateSendTokenSelect();
+/* ---------------------------
+  Mnemonic Modal
+----------------------------*/
+function showMnemonicModal(phrase) {
+  const modal = $('mnModal');
+  const grid = $('mnGrid');
+  grid.innerHTML = '';
+  const words = phrase.split(' ');
+  words.forEach((w, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'mn-cell';
+    cell.innerHTML = `<div class="small muted">#\( {i + 1}</div><div> \){w}</div>`;
+    grid.appendChild(cell);
+  });
+  $('confirmSaved').value = '';
+  $('mnActions').classList.add('hidden');
+  modal.classList.remove('hidden');
 }
+$('copyPhrase').onclick = async () => {
+  await navigator.clipboard.writeText(state.mnemonic);
+  toast('Phrase copied');
+};
+$('downloadPhrase').onclick = () => {
+  const blob = new Blob([state.mnemonic], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'recovery.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+$('confirmSaveBtn').onclick = () => {
+  if ($('confirmSaved').value.trim() !== 'I HAVE SAVED IT SECURELY') return toast('Type exactly');
+  $('mnActions').classList.remove('hidden');
+};
+$('saveLocalBtn').onclick = async () => {
+  const pwd = $('savePwd').value;
+  if (pwd.length < 8) return toast('Min 8 chars');
+  try {
+    const enc = await encryptMnemonic(pwd, state.mnemonic);
+    saveLocalObj(enc);
+    toast('Saved');
+    $('mnModal').classList.add('hidden');
+  } catch (e) { toast('Error'); }
+};
+$('skipSaveBtn').onclick = () => $('mnModal').classList.add('hidden');
+$('closeMn').onclick = () => $('mnModal').classList.add('hidden');
 
-async function updateTokenBalances(){
-  if(!state.wallet) return;
-  for(const t of state.tokens){
-    try{
-      const b = await getTokenBalance(state.chain, t.address, state.wallet.address);
-      const el = document.querySelector(`#tokbal_${t.address.slice(2,10)}_${t.symbol}`);
-      if(el) el.textContent = `${b.balance} ${t.symbol}`;
-    }catch(e){ console.warn('token bal', e); }
+/* ---------------------------
+  Update UI
+----------------------------*/
+function updateWalletUI(addr) {
+  elems.walletAddr.textContent = addr || '-';
+  elems.receiveAddr.textContent = addr || '-';
+  elems.sideAddr.textContent = addr || '-';
+  if (addr) {
+    new QRCode($('qrcode'), { text: addr, width: 128, height: 128 });
+  } else {
+    $('qrcode').innerHTML = '';
   }
+  elems.explorerLink.href = CONFIG.EXPLORER + (addr || '');
 }
 
 /* ---------------------------
-  Sending txs (native & ERC20)
+  Balances & Price
 ----------------------------*/
-$('btnSend').onclick = async ()=>{
-  if(!state.wallet) return toast('Unlock or create wallet');
-  const to = $('sendTo').value.trim(); const amt = $('sendAmount').value.trim();
-  if(!to || !amt) return toast('To + amount needed');
-  try{
-    const provider = getProvider(state.chain);
+async function updateBalances() {
+  if (!state.wallet) return;
+  try {
+    const provider = new ethers.providers.JsonRpcProvider(CONFIG.RPC);
+    const bal = await provider.getBalance(state.wallet.address);
+    const price = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CONFIG.CG_ID}&vs_currencies=usd`).then(r => r.json()).then(d => d.ethereum.usd);
+    elems.nativeBalance.textContent = ethers.utils.formatEther(bal) + ' ETH';
+    elems.usdBalance.textContent = price ? '$' + (parseFloat(ethers.utils.formatEther(bal)) * price).toFixed(2) : '-';
+    elems.priceETH.textContent = price ? '$' + price.toFixed(2) : '-';
+  } catch (e) { toast('Balance error'); }
+}
+
+/* ---------------------------
+  Send
+----------------------------*/
+$('btnSend').onclick = async () => {
+  if (!state.wallet) return toast('No wallet');
+  const to = elems.sendTo.value.trim();
+  const amt = elems.sendAmount.value.trim();
+  if (!to || !amt) return toast('Fill fields');
+  try {
+    const provider = new ethers.providers.JsonRpcProvider(CONFIG.RPC);
     const signer = state.wallet.connect(provider);
-    const tx = await signer.sendTransaction({ to, value: window.ethers.utils.parseEther(amt) });
-    toast('Sent tx: ' + tx.hash, 6000);
-    await updateBalances();
-  }catch(e){ console.error(e); toast('Send failed: ' + (e.message||e)); }
+    const tx = await signer.sendTransaction({ to, value: ethers.utils.parseEther(amt) });
+    toast('Sent: ' + tx.hash);
+    updateBalances();
+  } catch (e) { toast('Send failed: ' + e.message); }
 };
-
-$('btnSendToken').onclick = async ()=>{
-  if(!state.wallet) return toast('Unlock or create wallet');
-  const sel = $('sendTokenSelect'); if(!sel) return;
-  const addr = sel.value; const amt = $('sendTokenAmount').value.trim(); if(!addr || !amt) return toast('Choose token + amount');
-  try{
-    const provider = getProvider(state.chain); const signer = state.wallet.connect(provider);
-    const token = new window.ethers.Contract(addr, ["function transfer(address,uint256) returns (bool)", "function decimals() view returns (uint8)"], signer);
-    const decimals = await token.decimals();
-    const amountUnits = window.ethers.utils.parseUnits(amt, decimals);
-    const tx = await token.transfer($('sendTo').value.trim(), amountUnits);
-    toast('Token tx: ' + tx.hash, 6000);
-    await updateBalances();
-  }catch(e){ console.error(e); toast('Token send failed: ' + (e.message||e)); }
-};
-
-function populateSendTokenSelect(){
-  const sel = $('sendTokenSelect'); sel.innerHTML = '<option value="">--select token--</option>';
-  for(const t of state.tokens) { const o = document.createElement('option'); o.value=t.address; o.textContent = t.symbol; sel.appendChild(o); }
-}
-
-/* ---------------------------
-  Balances + update loop
-----------------------------*/
-async function updateBalances(){
-  if(!state.wallet){ $('nativeBalance').textContent = '-'; $('usdBalance').textContent='-'; return; }
-  try{
-    const bal = await fetchNativeBalance(state.wallet.address, state.chain);
-    const price = await fetchBinancePrice(state.chain==='ethereum'?'ETHUSDT': state.chain==='bsc'?'BNBUSDT': 'MATICUSDT') || await fetchCGPrice(CG_IDS[state.chain]);
-    const sym = state.chain==='bsc'?'BNB': state.chain==='polygon'?'MATIC':'ETH';
-    $('nativeBalance').textContent = `${Number(bal).toFixed(6)} ${sym}`;
-    $('usdBalance').textContent = price ? '$' + (bal * price).toFixed(2) : '-';
-    await updateTokenBalances();
-  }catch(e){ console.error(e); toast('Balance update failed'); }
-}
-
-/* ---------------------------
-  History: use Alchemy RPC method alchemy_getAssetTransfers
-----------------------------*/
-async function loadHistory(){
-  if(!state.wallet) return toast('Unlock wallet to load history');
-  const rpc = getRpc(state.chain);
-  const body = {
-    jsonrpc: '2.0', id: 1, method: 'alchemy_getAssetTransfers',
-    params: [{
-      fromBlock: '0x0',
-      toBlock: 'latest',
-      category: ['external','erc20','erc721'],
-      withMetadata: true,
-      excludeZeroValue: true,
-      toAddress: state.wallet.address,
-      maxCount: '0x64'
-    }]
-  };
-  try{
-    const res = await fetch(rpc, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-    const j = await res.json();
-    const transfers = j.result?.transfers || [];
-    if(!transfers.length) { $('historyList').textContent='No recent transfers (or API limit)'; return; }
-    const out = transfers.map(tr=> `${new Date(tr.metadata.blockTimestamp).toLocaleString()} • ${tr.category} • ${tr.from} → ${tr.to} • ${tr.value || tr.asset || ''} ${tr.tokenSymbol||''}` ).join('\n\n');
-    $('historyList').textContent = out;
-    toast('Loaded history: ' + transfers.length + ' items', 3000);
-  }catch(e){ console.error(e); toast('History load failed'); }
-}
-$('btnLoadHistory').onclick = loadHistory;
-
-/* ---------------------------
-  Search tokens (CoinGecko search)
-----------------------------*/
-$('btnSearch').onclick = async ()=>{
-  const q = $('searchToken').value.trim(); if(!q) return;
-  try{
-    const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
-    const j = await r.json();
-    const coins = j.coins || [];
-    if(!coins.length) { $('searchResults').textContent='No tokens found'; return; }
-    const html = coins.slice(0,8).map(c=>{
-      const cgId = c.id; const sym = c.symbol.toUpperCase(); const name = c.name; const img = c.thumb;
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px;border-radius:8px;background:rgba(0,0,0,0.06);margin-bottom:6px">
-        <div style="display:flex;align-items:center;gap:8px"><img src="${img}" style="width:28px;height:28px;border-radius:6px"/><div><div style="font-weight:700">${name}</div><div class="small muted">${sym}</div></div></div>
-        <div><button class="copyBtn" onclick="window.__addCoin('${cgId}')">Add</button></div>
-      </div>`;
-    }).join('');
-    $('searchResults').innerHTML = html;
-    // expose helper to add coin by coinGecko id (will fetch contract addresses? show mapping)
-    window.__addCoin = async (cgId)=>{
-      // fetch coin detail => show user contracts and let them add by contract
-      try{
-        const r2 = await fetch(`https://api.coingecko.com/api/v3/coins/${cgId}`);
-        const d = await r2.json();
-        // try find ethereum contract or other platforms
-        const contract = d?.contract_address || (d?.platforms ? (d.platforms.ethereum || d.platforms['binance-smart-chain'] || d.platforms.polygon) : null) || null;
-        if(!contract){ alert('No contract address found in Coingecko entry. Use manual contract address.'); return; }
-        $('tokenAddr').value = contract;
-        toast('Token contract filled from Coingecko. Click Add.');
-      }catch(e){ console.error(e); toast('CoinGecko fetch failed'); }
-    };
-  }catch(e){ console.error(e); toast('Search failed'); }
-};
-
   /* ---------------------------
-  Create ERC-20 solidity template
+  Navigation
 ----------------------------*/
-$('btnGenerate').onclick = ()=>{
-  const name = $('newName').value.trim() || 'MyToken';
-  const sym = $('newSymbol').value.trim() || 'MTK';
-  const supply = $('newSupply').value.trim() || '1000000';
-  const code = `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\nimport "@openzeppelin/contracts/token/ERC20/ERC20.sol";\ncontract ${name.replace(/\W/g,'')} is ERC20 {\n  constructor() ERC20("${name}","${sym}") {\n    _mint(msg.sender, ${supply} * (10 ** 18));\n  }\n}\n// Deploy with Remix or Hardhat, pay gas on chosen network.\n`;
-  $('solCode').textContent = code;
-};
-$('btnCopyCode').onclick = ()=>{ navigator.clipboard.writeText($('solCode').textContent); toast('Copied solidity code'); };
-
-/* ---------------------------
-  Navigation & init
-----------------------------*/
-const sections = { wallet: $('sectionWallet'), tokens: $('sectionTokens'), send: $('sectionSend'), history: $('sectionHistory'), create: $('sectionCreate')};
-function navShow(key){
-  for(const k in sections) sections[k].classList.remove('active');
+const sections = { wallet: $('sectionWallet'), send: $('sectionSend'), receive: $('sectionReceive') };
+function navShow(key) {
+  Object.values(sections).forEach(s => s.classList.remove('active'));
   sections[key].classList.add('active');
-  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('activeNav'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('activeNav'));
 }
-$('navWallet').onclick = ()=>{ navShow('wallet'); $('navWallet').classList.add('activeNav'); };
-$('navTokens').onclick = ()=>{ navShow('tokens'); $('navTokens').classList.add('activeNav'); };
-$('navSend').onclick = ()=>{ navShow('send'); $('navSend').classList.add('activeNav'); };
-$('navHistory').onclick = ()=>{ navShow('history'); $('navHistory').classList.add('activeNav'); };
-$('navCreate').onclick = ()=>{ navShow('create'); $('navCreate').classList.add('activeNav'); };
-
-$('chainSelect').onchange = ()=>{ state.chain = $('chainSelect').value; updateExplorerLink(); updateBalances(); updatePrices(); };
+$('navWallet').onclick = () => { navShow('wallet'); $('navWallet').classList.add('activeNav'); };
+$('navSend').onclick = () => { navShow('send'); $('navSend').classList.add('activeNav'); };
+$('navReceive').onclick = () => { navShow('receive'); $('navReceive').classList.add('activeNav'); };
 
 /* ---------------------------
-  Explorer link
+  Init
 ----------------------------*/
-function updateExplorerLink(){ if(!state.wallet) return; const url = getExplorer(state.chain) + state.wallet.address; if(elems.explorerLink) elems.explorerLink.href = url; }
-
-/* ---------------------------
-  Boot sequence
-----------------------------*/
-(async function init(){
-  // try load local encrypted presence and show indicator
+(async function init() {
   const local = loadLocalObj();
-  if(local) { /* could show indicator for saved local wallet */ }
-  // update prices every 15s
-  updatePrices(); setInterval(updatePrices, 15000);
-  // try to restore state if local unlocked via prompt? (we leave for user to unlock)
+  if (local) $('btnUnlockLocal').classList.remove('hidden');
+  setInterval(updateBalances, 30000);
 })();
-
-/* Expose state for debugging */
-window.INFINITY = { state, showWallet, updateBalances, loadHistory };
-
 </script>
 
 </body>
 </html>
+  
