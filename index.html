@@ -1,462 +1,240 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Infinity ♾ Wallet — Fixed Single File</title>
-
-<!-- Fonts / libs -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<style>
-:root{--bg:#060812;--panel:#0f1720;--muted:#9fb3c8;--accent:#7f5cff;--text:#e6f3f7;--glass:rgba(255,255,255,0.03);--radius:12px}
-*{box-sizing:border-box;font-family:Inter,system-ui,Arial}
-body{margin:0;background:linear-gradient(180deg,#03040a,#060812);color:var(--text)}
-.app{max-width:1200px;margin:18px auto;padding:12px}
-.header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px}
-.brand{display:flex;gap:12px;align-items:center}
-.logo{width:50px;height:50px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:800;color:#001;font-size:20px}
-.title{font-size:18px;font-weight:800}
-.subtitle{font-size:13px;color:var(--muted)}
-.layout{display:grid;grid-template-columns:1fr 360px;gap:18px}
-@media(max-width:920px){.layout{grid-template-columns:1fr}}
-.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:14px;border-radius:14px;border:1px solid var(--glass)}
-.row{display:flex;gap:8px;align-items:center}
-input,select,textarea{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:#07121a;color:var(--text);width:100%}
-button{padding:9px 12px;border-radius:10px;border:none;background:var(--accent);color:#001;font-weight:700;cursor:pointer}
-button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-.muted{color:var(--muted)}
-.addr{word-break:break-all;font-weight:700;margin-top:8px}
-.big{font-size:20px;font-weight:800;margin-top:6px}
-.small{font-size:13px}
-.hidden{display:none}
-#qrcode{margin-top:8px}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#072225;padding:10px 14px;border-radius:999px;display:none}
-.nav{display:flex;gap:8px;margin-bottom:12px}
-.nav button{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 10px;border-radius:10px}
-.activeNav{background:linear-gradient(90deg,var(--accent),#06b6d4);color:#001;border:none}
-.section{display:none}
-.section.active{display:block}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Simple Non-Custodial Wallet</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+  <style>
+    :root { --bg: #04040d; --card: #0f0f1a; --muted: #a5a5c3; --accent: #7e57c2; --danger: #ff5252; --border: rgba(255,255,255,0.05); --input-bg: #1a1a2e; }
+    body { margin: 0; background: var(--bg); color: #fff; font-family: Arial; padding: 20px; }
+    .card { background: var(--card); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid var(--border); }
+    input { width: 100%; padding: 10px; margin-bottom: 10px; background: var(--input-bg); border: 1px solid var(--border); color: #fff; border-radius: 5px; }
+    button { padding: 10px; background: var(--accent); color: #fff; border: none; cursor: pointer; width: 100%; margin-bottom: 10px; border-radius: 5px; }
+    .hidden { display: none; }
+    .danger { color: var(--danger); }
+    .mn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .mn-cell { background: var(--input-bg); padding: 10px; border-radius: 5px; text-align: center; border: 1px solid var(--border); }
+  </style>
 </head>
 <body>
-<div class="app">
-
-  <header class="header">
-    <div class="brand">
-      <div class="logo">♾</div>
-      <div>
-        <div class="title">Infinity ♾ Wallet</div>
-        <div class="subtitle">Non-custodial • Ethereum Only</div>
-      </div>
-    </div>
-    <div style="text-align:right">
-      <div id="statusText" class="small muted">Status: Not signed in</div>
-      <div id="userEmail" class="small muted">-</div>
-    </div>
-  </header>
-
-  <div class="nav">
-    <button id="navWallet" class="activeNav">Wallet</button>
-    <button id="navSend">Send</button>
-    <button id="navReceive">Receive</button>
-  </div>
-
-  <div class="layout">
-
-    <!-- LEFT: main area -->
-    <div>
-      <!-- AUTH card -->
-      <div class="card" style="margin-bottom:14px">
-        <h3>Account</h3>
-        <div class="row" style="margin-top:8px">
-          <input id="email" placeholder="Email (Gmail)" type="email">
-          <input id="password" placeholder="Password" type="password">
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button id="btnSignIn">Sign in</button>
-          <button id="btnSignUp" class="ghost">Create</button>
-          <button id="btnSignOut" class="ghost hidden">Sign out</button>
-          <button id="btnForgot" class="ghost">Forgot</button>
-        </div>
-      </div>
-
-      <!-- WALLET section -->
-      <div id="sectionWallet" class="card section active">
-        <h3>Wallet</h3>
-        <div class="row" style="margin-top:8px">
-          <button id="btnCreate">Create Wallet</button>
-          <button id="btnImport" class="ghost">Import</button>
-          <button id="btnSaveLocal" class="ghost hidden">Save Locally</button>
-          <button id="btnUnlockLocal" class="ghost hidden">Unlock Local</button>
-        </div>
-
-        <div style="margin-top:12px">
-          <div class="card">
-            <div>Address</div>
-            <div id="walletAddr" class="addr">-</div>
-            <div style="margin-top:12px">
-              <div id="nativeBalance" class="big">-</div>
-              <div id="usdBalance" class="muted">-</div>
-            </div>
-            <div style="margin-top:8px"><a id="explorerLink" href="#" target="_blank" class="small muted">View on explorer</a></div>
-          </div>
-        </div>
-        <div class="row" style="margin-top:12px">
-          <button id="btnExportPhrase" class="ghost hidden">Export Phrase</button>
-          <button id="btnDeleteLocal" class="ghost hidden">Delete Local</button>
-        </div>
-      </div>
-
-      <!-- SEND section -->
-      <div id="sectionSend" class="card section">
-        <h3>Send ETH</h3>
-        <div style="margin-top:8px">
-          <label>Recipient</label>
-          <input id="sendTo" placeholder="0x..."/>
-          <label style="margin-top:8px">Amount (ETH)</label>
-          <div class="row">
-            <input id="sendAmount" placeholder="0.01"/>
-            <button id="btnSend" class="ghost">Send</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- RECEIVE section -->
-      <div id="sectionReceive" class="card section">
-        <h3>Receive</h3>
-        <div class="small">Address</div>
-        <div id="receiveAddr" class="addr">-</div>
-        <div id="qrcode"></div>
-        <button id="btnCopyAddr" class="ghost" style="margin-top:10px">Copy Address</button>
-      </div>
-    </div>
-
-    <!-- RIGHT: side panel -->
-    <aside>
-      <div class="card">
-        <h4>Account</h4>
-        <div id="signedEmail">-</div>
-        <div style="margin-top:8px" class="muted small">Wallet address</div>
-        <div id="sideAddr" class="addr">-</div>
-      </div>
-
-      <div class="card" style="margin-top:12px">
-        <h4>ETH Price (live)</h4>
-        <div style="margin-top:8px">
-          <div id="priceETH" class="big">-</div>
-        </div>
-        <div style="margin-top:8px" class="muted small">From CoinGecko</div>
-      </div>
-    </aside>
-          </div>
-          <div id="toast" class="toast"></div>
-
-  <!-- Mnemonic Modal -->
-  <div id="mnModal" class="modal hidden">
-    <div class="modal-card">
-      <h3 style="color:var(--accent)">Your Recovery Phrase</h3>
-      <div class="small danger">WARNING: Shown ONLY ONCE. Write down offline. Do not share or screenshot. Losing this loses your wallet.</div>
-      <div id="mnGrid" class="mn-grid"></div>
-      <div style="margin-top:12px" class="row">
-        <button id="copyPhrase">Copy</button>
-        <button class="ghost" id="downloadPhrase">Download TXT</button>
-      </div>
-      <div style="margin-top:12px">
-        <input id="confirmSaved" placeholder='Type "I HAVE SAVED IT SECURELY" to continue' />
-      </div>
-      <div style="margin-top:12px" class="row">
-        <button id="confirmSaveBtn">Confirm</button>
-      </div>
-      <div style="margin-top:12px" class="small muted">Then encrypt locally or skip.</div>
-      <div style="margin-top:12px" id="mnActions" class="row hidden">
-        <input id="savePwd" type="password" placeholder="Encryption password (min 8 chars)" />
-        <button id="saveLocalBtn">Save Locally</button>
-        <button class="ghost" id="skipSaveBtn">Skip</button>
-      </div>
-      <div style="margin-top:12px;text-align:right"><button class="ghost" id="closeMn">Close</button></div>
+  <div id="auth">
+    <div class="card">
+      <h2>Signup / Login</h2>
+      <input id="email" placeholder="Email (Gmail recommended)" type="email">
+      <input id="password" placeholder="Password (min 6 chars)" type="password">
+      <button id="btnSignUp">Signup</button>
+      <button id="btnSignIn">Login</button>
     </div>
   </div>
 
-</div>
+  <div id="wallet" class="hidden">
+    <div class="card">
+      <h2>Wallet</h2>
+      <button id="btnCreate">Create Wallet</button>
+      <button id="btnImport">Import Wallet</button>
+      <button id="btnUnlock" class="hidden">Unlock Local</button>
+      <button id="btnSignOut">Sign Out</button>
+      <div class="card" id="address">Address: -</div>
+      <div id="balance">Balance: - ETH</div>
+      <div id="qr" style="text-align: center; margin-top: 10px;"></div>
+      <button id="btnExport" class="hidden">Export Phrase</button>
+      <button id="btnDelete" class="hidden">Delete Local</button>
+    </div>
 
-<script type="module">
-/* ---------------------------
-  CONFIG
-----------------------------*/
-const CONFIG = {
-  RPC: 'https://rpc.ankr.com/eth', // Free public RPC for Ethereum
-  EXPLORER: 'https://etherscan.io/address/',
-  CG_ID: 'ethereum'
-};
+    <div class="card">
+      <h2>Send ETH</h2>
+      <input id="to" placeholder="Recipient Address (0x...)">
+      <input id="amount" placeholder="Amount (ETH)" type="number" step="0.0001">
+      <button id="btnSend">Send</button>
+    </div>
+  </div>
 
-/* ---------------------------
-  IMPORT FIREBASE
-----------------------------*/
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+  <div id="modal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;">
+    <div class="card" style="width:90%; max-width:600px;">
+      <h2>Recovery Phrase</h2>
+      <p class="danger">WARNING: Shown ONLY ONCE. Write down offline. Do not share or screenshot. Losing this loses your wallet.</p>
+      <div id="phraseGrid" class="mn-grid"></div>
+      <input id="confirm" placeholder="Type 'I SAVED' to confirm">
+      <button id="btnConfirm">Confirm</button>
+      <div id="saveSection" class="hidden">
+        <input id="savePass" type="password" placeholder="Password (min 8 chars)">
+        <button id="btnSaveLocal">Save Local</button>
+        <button id="btnSkip">Skip</button>
+      </div>
+      <button id="btnCloseModal">Close</button>
+    </div>
+  </div>
 
-/* ---------------------------
-  HELPERS
-----------------------------*/
-const $ = id => document.getElementById(id);
-function toast(msg, t=2200){ const el=$('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none', t); }
-function hexToBytes(hex){ const out=new Uint8Array(Math.ceil(hex.length/2)); for(let i=0;i<out.length;i++) out[i]=parseInt(hex.substr(i*2,2),16); return out; }
-function bytesToHex(bytes){ return Array.from(new Uint8Array(bytes)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBtbgeSVEwHGs50sHRe9GBle4xonalhIL0",
+      authDomain: "anontalk-pfvvb.firebaseapp.com",
+      projectId: "anontalk-pfvvb",
+      storageBucket: "anontalk-pfvvb.firebasestorage.app",
+      messagingSenderId: "600500129969",
+      appId: "1:600500129969:web:f19c1c0b3603a44a00d290"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-/* ---------------------------
-  ENCRYPT/DECRYPT
-----------------------------*/
-async function deriveKey(password, saltHex){
-  const enc = new TextEncoder();
-  const salt = hexToBytes(saltHex);
-  const base = await crypto.subtle.importKey('raw', enc.encode(password), {name:'PBKDF2'}, false, ['deriveKey']);
-  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, true, ['encrypt','decrypt']);
-  return key;
-}
-async function encryptMnemonic(password, plaintext){
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveKey(password, bytesToHex(salt));
-  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(plaintext));
-  return { salt: bytesToHex(salt), iv: bytesToHex(iv), cipher: bytesToHex(ct) };
-}
-async function decryptMnemonic(password, obj){
-  const key = await deriveKey(password, obj.salt);
-  const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv: hexToBytes(obj.iv)}, key, hexToBytes(obj.cipher));
-  return new TextDecoder().decode(plain);
-}
+    // State
+    let wallet, mnemonic;
+    const rpc = 'https://rpc.ankr.com/eth_goerli'; // Testnet
 
-/* ---------------------------
-  Local storage
-----------------------------*/
-const LOCAL_KEY = 'infinity_wallet_v1';
-function saveLocalObj(obj){ localStorage.setItem(LOCAL_KEY, JSON.stringify(obj)); }
-function loadLocalObj(){ const j=localStorage.getItem(LOCAL_KEY); return j?JSON.parse(j):null; }
-function removeLocal(){ localStorage.removeItem(LOCAL_KEY); }
+    // Auth
+    document.getElementById('btnSignUp').addEventListener('click', () => {
+      firebase.auth().createUserWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value)
+        .then(() => showWallet())
+        .catch(e => alert(e.message));
+    });
+    document.getElementById('btnSignIn').addEventListener('click', () => {
+      firebase.auth().signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value)
+        .then(() => showWallet())
+        .catch(e => alert(e.message));
+    });
+    document.getElementById('btnSignOut').addEventListener('click', () => {
+      firebase.auth().signOut().then(() => location.reload());
+    });
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) showWallet();
+      else {
+        document.getElementById('auth').classList.remove('hidden');
+        document.getElementById('wallet').classList.add('hidden');
+      }
+    });
 
-/* ---------------------------
-  Firebase init
-----------------------------*/
-const fbApp = initializeApp(CONFIG.FIREBASE);
-const auth = getAuth(fbApp);
+    function showWallet() {
+      document.getElementById('auth').classList.add('hidden');
+      document.getElementById('wallet').classList.remove('hidden');
+      const local = localStorage.getItem('wallet_enc');
+      if (local) document.getElementById('btnUnlock').classList.remove('hidden');
+      if (wallet) updateUI();
+    }
 
-/* ---------------------------
-  State
-----------------------------*/
-const state = { user:null, wallet:null, mnemonic:null };
-const elems = {
-  email:\( ('email'), password: \)('password'), statusText:\( ('statusText'), userEmail: \)('userEmail'),
-  walletAddr:\( ('walletAddr'), nativeBalance: \)('nativeBalance'), usdBalance:$('usdBalance'),
-  receiveAddr:\( ('receiveAddr'), qrcode: \)('qrcode'), sendTo:\( ('sendTo'), sendAmount: \)('sendAmount'),
-  signedEmail:\( ('signedEmail'), sideAddr: \)('sideAddr'), priceETH:$('priceETH')
-};
+    // Wallet Functions
+    document.getElementById('btnCreate').addEventListener('click', () => {
+      wallet = new ethers.Wallet(ethers.utils.randomBytes(32));
+      mnemonic = ethers.utils.entropyToMnemonic(ethers.utils.randomBytes(16));
+      console.log('Phrase generated:', mnemonic); // Debug - check console (F12)
+      showModal(mnemonic);
+      updateUI();
+      alert('Wallet created');
+    });
+    document.getElementById('btnImport').addEventListener('click', () => {
+      const phrase = prompt('Enter 12-word phrase');
+      if (!phrase) return;
+      try {
+        mnemonic = phrase;
+        wallet = ethers.Wallet.fromMnemonic(phrase);
+        updateUI();
+        alert('Imported');
+      } catch (e) { alert('Invalid phrase: ' + e.message); }
+    });
+    document.getElementById('btnUnlock').addEventListener('click', () => {
+      const pwd = prompt('Enter password');
+      if (!pwd) return;
+      try {
+        const enc = JSON.parse(localStorage.getItem('wallet_enc'));
+        decrypt(pwd, enc).then(phrase => {
+          mnemonic = phrase;
+          wallet = ethers.Wallet.fromMnemonic(phrase);
+          updateUI();
+          alert('Unlocked');
+        }).catch(e => alert('Wrong password: ' + e.message));
+      } catch (e) { alert('Error: ' + e.message); }
+    });
+    document.getElementById('btnExport').addEventListener('click', () => {
+      showModal(mnemonic);
+    });
+    document.getElementById('btnDelete').addEventListener('click', () => {
+      if (confirm('Delete local?')) {
+        localStorage.removeItem('wallet_enc');
+        alert('Deleted');
+        location.reload();
+      }
+    });
 
-/* ---------------------------
-  Auth
-----------------------------*/
-$('btnSignUp').onclick = async ()=> {
-  try{ await createUserWithEmailAndPassword(auth, elems.email.value, elems.password.value); toast('Created'); } catch(e){ toast(e.message); }
-};
-$('btnSignIn').onclick = async ()=> {
-  try{ await signInWithEmailAndPassword(auth, elems.email.value, elems.password.value); toast('Signed in'); } catch(e){ toast(e.message); }
-};
-$('btnSignOut').onclick = async ()=> { await signOut(auth); location.reload(); };
-$('btnForgot').onclick = async ()=> {
-  try{ await sendPasswordResetEmail(auth, elems.email.value); toast('Reset sent'); } catch(e){ toast('Reset failed'); }
-};
-onAuthStateChanged(auth, user=>{
-  state.user = user;
-  elems.statusText.textContent = user ? 'Signed in' : 'Not signed in';
-  elems.userEmail.textContent = user ? user.email : '-';
-  elems.signedEmail.textContent = user ? user.email : '-';
-  $('btnSignOut').classList.toggle('hidden', !user);
-  $('btnSaveLocal').classList.toggle('hidden', !user || !state.mnemonic);
-  $('btnUnlockLocal').classList.toggle('hidden', !loadLocalObj());
-  $('btnExportPhrase').classList.toggle('hidden', !state.wallet);
-  $('btnDeleteLocal').classList.toggle('hidden', !loadLocalObj());
-  if(user) updateBalances();
-});
+    // Modal
+    function showModal(phrase) {
+      const grid = document.getElementById('phraseGrid');
+      grid.innerHTML = '';
+      if (!phrase) return alert('Phrase error');
+      phrase.split(' ').forEach((w, i) => {
+        const div = document.createElement('div');
+        div.className = 'mn-cell';
+        div.textContent = `${i+1}. ${w}`;
+        grid.appendChild(div);
+      });
+      document.getElementById('modal').classList.remove('hidden');
+    }
+    document.getElementById('btnConfirm').addEventListener('click', () => {
+      if (document.getElementById('confirm').value !== 'I SAVED') return alert('Type I SAVED');
+      document.getElementById('saveSection').classList.remove('hidden');
+    });
+    document.getElementById('btnSaveLocal').addEventListener('click', () => {
+      const pwd = document.getElementById('savePass').value;
+      if (pwd.length < 8) return alert('Min 8 chars');
+      encrypt(pwd, mnemonic).then(enc => {
+        localStorage.setItem('wallet_enc', JSON.stringify(enc));
+        document.getElementById('modal').classList.add('hidden');
+        document.getElementById('btnUnlock').classList.remove('hidden');
+        document.getElementById('btnDelete').classList.remove('hidden');
+        alert('Saved locally');
+      }).catch(e => alert('Error: ' + e.message));
+    });
+    document.getElementById('btnSkip').addEventListener('click', () => document.getElementById('modal').classList.add('hidden'));
+    document.getElementById('btnCloseModal').addEventListener('click', () => document.getElementById('modal').classList.add('hidden'));
 
-/* ---------------------------
-  Wallet
-----------------------------*/
-$('btnCreate').onclick = ()=>{
-  const wallet = ethers.Wallet.createRandom();
-  state.wallet = wallet;
-  state.mnemonic = wallet.mnemonic.phrase;
-  showMnemonicModal(state.mnemonic);
-  updateWalletUI(wallet.address);
-  updateBalances();
-  toast('Wallet created');
-};
-$('btnImport').onclick = ()=>{
-  const phrase = prompt('Paste 12-word phrase');
-  if(!phrase) return;
-  try{
-    const wallet = ethers.Wallet.fromMnemonic(phrase);
-    state.wallet = wallet;
-    state.mnemonic = phrase;
-    updateWalletUI(wallet.address);
-    updateBalances();
-    toast('Imported');
-  }catch(e){ toast('Invalid phrase'); }
-};
-$('btnUnlockLocal').onclick = async ()=>{
-  const obj = loadLocalObj();
-  if(!obj) return toast('No local wallet');
-  const pwd = prompt('Password');
-  if(!pwd) return;
-  try{
-    const phrase = await decryptMnemonic(pwd, obj);
-    const wallet = ethers.Wallet.fromMnemonic(phrase);
-    state.wallet = wallet;
-    state.mnemonic = phrase;
-    updateWalletUI(wallet.address);
-    updateBalances();
-    toast('Unlocked');
-  }catch(e){ toast('Wrong password'); }
-};
-$('btnSaveLocal').onclick = async ()=>{
-  const pwd = prompt('Set password (min 8 chars)');
-  if(!pwd || pwd.length < 8) return toast('Invalid password');
-  try{
-    const enc = await encryptMnemonic(pwd, state.mnemonic);
-    saveLocalObj(enc);
-    toast('Saved locally');
-  }catch(e){ toast('Save failed'); }
-};
-$('btnExportPhrase').onclick = ()=>{
-  showMnemonicModal(state.mnemonic);
-};
-$('btnDeleteLocal').onclick = ()=>{
-  if(confirm('Delete local?')){ removeLocal(); toast('Deleted'); location.reload(); }
-};
-$('btnCopyAddr').onclick = async ()=>{
-  if(!state.wallet) return toast('No wallet');
-  await navigator.clipboard.writeText(state.wallet.address);
-  toast('Address copied');
-};
+    // Update UI
+    async function updateUI() {
+      document.getElementById('address').textContent = 'Address: ' + wallet.address;
+      document.getElementById('qr').innerHTML = '';
+      new QRCode(document.getElementById('qr'), wallet.address);
+      document.getElementById('btnExport').classList.remove('hidden');
+      const provider = new ethers.providers.JsonRpcProvider(rpc);
+      const bal = await provider.getBalance(wallet.address);
+      document.getElementById('balance').textContent = 'Balance: ' + ethers.utils.formatEther(bal) + ' ETH';
+    }
 
-/* ---------------------------
-  Mnemonic Modal
-----------------------------*/
-function showMnemonicModal(phrase) {
-  const modal = $('mnModal');
-  const grid = $('mnGrid');
-  grid.innerHTML = '';
-  const words = phrase.split(' ');
-  words.forEach((w, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'mn-cell';
-    cell.innerHTML = `<div class="small muted">#\( {i + 1}</div><div> \){w}</div>`;
-    grid.appendChild(cell);
-  });
-  $('confirmSaved').value = '';
-  $('mnActions').classList.add('hidden');
-  modal.classList.remove('hidden');
-}
-$('copyPhrase').onclick = async () => {
-  await navigator.clipboard.writeText(state.mnemonic);
-  toast('Phrase copied');
-};
-$('downloadPhrase').onclick = () => {
-  const blob = new Blob([state.mnemonic], {type:'text/plain'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'recovery.txt';
-  a.click();
-  URL.revokeObjectURL(url);
-};
-$('confirmSaveBtn').onclick = () => {
-  if ($('confirmSaved').value.trim() !== 'I HAVE SAVED IT SECURELY') return toast('Type exactly');
-  $('mnActions').classList.remove('hidden');
-};
-$('saveLocalBtn').onclick = async () => {
-  const pwd = $('savePwd').value;
-  if (pwd.length < 8) return toast('Min 8 chars');
-  try {
-    const enc = await encryptMnemonic(pwd, state.mnemonic);
-    saveLocalObj(enc);
-    toast('Saved');
-    $('mnModal').classList.add('hidden');
-  } catch (e) { toast('Error'); }
-};
-$('skipSaveBtn').onclick = () => $('mnModal').classList.add('hidden');
-$('closeMn').onclick = () => $('mnModal').classList.add('hidden');
+    // Send
+    document.getElementById('btnSend').addEventListener('click', async () => {
+      const to = document.getElementById('to').value;
+      const amt = document.getElementById('amount').value;
+      if (!to || !amt) return alert('Fill fields');
+      try {
+        const provider = new ethers.providers.JsonRpcProvider(rpc);
+        const signer = wallet.connect(provider);
+        const tx = await signer.sendTransaction({ to, value: ethers.utils.parseEther(amt) });
+        alert('TX sent: ' + tx.hash);
+        updateUI();
+      } catch (e) { alert('Send error: ' + e.message); }
+    });
 
-/* ---------------------------
-  Update UI
-----------------------------*/
-function updateWalletUI(addr) {
-  elems.walletAddr.textContent = addr || '-';
-  elems.receiveAddr.textContent = addr || '-';
-  elems.sideAddr.textContent = addr || '-';
-  if (addr) {
-    new QRCode($('qrcode'), { text: addr, width: 128, height: 128 });
-  } else {
-    $('qrcode').innerHTML = '';
-  }
-  elems.explorerLink.href = CONFIG.EXPLORER + (addr || '');
-}
-
-/* ---------------------------
-  Balances & Price
-----------------------------*/
-async function updateBalances() {
-  if (!state.wallet) return;
-  try {
-    const provider = new ethers.providers.JsonRpcProvider(CONFIG.RPC);
-    const bal = await provider.getBalance(state.wallet.address);
-    const price = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CONFIG.CG_ID}&vs_currencies=usd`).then(r => r.json()).then(d => d.ethereum.usd);
-    elems.nativeBalance.textContent = ethers.utils.formatEther(bal) + ' ETH';
-    elems.usdBalance.textContent = price ? '$' + (parseFloat(ethers.utils.formatEther(bal)) * price).toFixed(2) : '-';
-    elems.priceETH.textContent = price ? '$' + price.toFixed(2) : '-';
-  } catch (e) { toast('Balance error'); }
-}
-
-/* ---------------------------
-  Send
-----------------------------*/
-$('btnSend').onclick = async () => {
-  if (!state.wallet) return toast('No wallet');
-  const to = elems.sendTo.value.trim();
-  const amt = elems.sendAmount.value.trim();
-  if (!to || !amt) return toast('Fill fields');
-  try {
-    const provider = new ethers.providers.JsonRpcProvider(CONFIG.RPC);
-    const signer = state.wallet.connect(provider);
-    const tx = await signer.sendTransaction({ to, value: ethers.utils.parseEther(amt) });
-    toast('Sent: ' + tx.hash);
-    updateBalances();
-  } catch (e) { toast('Send failed: ' + e.message); }
-};
-  /* ---------------------------
-  Navigation
-----------------------------*/
-const sections = { wallet: $('sectionWallet'), send: $('sectionSend'), receive: $('sectionReceive') };
-function navShow(key) {
-  Object.values(sections).forEach(s => s.classList.remove('active'));
-  sections[key].classList.add('active');
-  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('activeNav'));
-}
-$('navWallet').onclick = () => { navShow('wallet'); $('navWallet').classList.add('activeNav'); };
-$('navSend').onclick = () => { navShow('send'); $('navSend').classList.add('activeNav'); };
-$('navReceive').onclick = () => { navShow('receive'); $('navReceive').classList.add('activeNav'); };
-
-/* ---------------------------
-  Init
-----------------------------*/
-(async function init() {
-  const local = loadLocalObj();
-  if (local) $('btnUnlockLocal').classList.remove('hidden');
-  setInterval(updateBalances, 30000);
-})();
-</script>
-
+    // Encryption
+    async function encrypt(password, text) {
+      const salt = window.crypto.getRandomValues(new Uint8Array(16));
+      const iv = window.crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveKey(password, bytesToHex(salt));
+      const ct = await window.crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, new TextEncoder().encode(text));
+      return { salt: bytesToHex(salt), iv: bytesToHex(iv), cipher: bytesToHex(ct) };
+    }
+    async function decrypt(password, obj) {
+      const key = await deriveKey(password, obj.salt);
+      const pt = await window.crypto.subtle.decrypt({name: 'AES-GCM', iv: hexToBytes(obj.iv)}, key, hexToBytes(obj.cipher));
+      return new TextDecoder().decode(pt);
+    }
+    async function deriveKey(password, saltHex) {
+      const enc = new TextEncoder();
+      const passKey = await window.crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+      return await window.crypto.subtle.deriveKey({name: 'PBKDF2', salt: hexToBytes(saltHex), iterations: 100000, hash: 'SHA-256'}, passKey, {name: 'AES-GCM', length: 256}, false, ['encrypt', 'decrypt']);
+    }
+    function hexToBytes(hex) { const bytes = new Uint8Array(hex.length / 2); for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16); return bytes; }
+    function bytesToHex(bytes) { return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''); }
+  </script>
 </body>
 </html>
-  
